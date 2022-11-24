@@ -1,7 +1,7 @@
 -- |
 -- = Example
 --
--- You have two versions of a file, with a diff. Given a source span
+-- You have a diff between two versions of a file. Given a source span
 -- in one version, find the corresponding span in the other version.
 --
 -- For example, here is a diff @d@ between a source string "abcdefgh" and a target
