@@ -180,14 +180,14 @@ instance Semigroup Replace where
       -- Disjoint, l on the left.
       --
       -- Before:
-      -- |---l---|       |---r---|
-      -- li      li+ln   ri      ri+rn
+      -- > |---l---|       |---r---|
+      -- > li      li+ln   ri      ri+rn
       --
       -- After both replacements (r first),
       -- with ld = lm-ln
       --
-      -- |---l---|       |---r---|
-      -- li      li+lm   ri+ld   ri+rm+ld
+      -- > |---l---|       |---r---|
+      -- > li      li+lm   ri+ld   ri+rm+ld
     = Replace li (ri+rn-li) (ri+rm+(lm-ln)-li)
 
     | li <= ri
@@ -198,15 +198,15 @@ instance Semigroup Replace where
       -- After replacing r, the replaced span r and the to-be-replaced
       -- span l look like this:
       --
-      --       |------r----|
-      -- |----l-----|
-      -- li    ri   li+ln  ri+rm
+      -- >       |------r----|
+      -- > |----l-----|
+      -- > li    ri   li+ln  ri+rm
       --
       -- or this:
       --
-      --      |--r--|
-      -- |-------l----------|
-      -- li   ri    ri+rm   li+ln
+      -- >      |--r--|
+      -- > |-------l----------|
+      -- > li   ri    ri+rm   li+ln
       --
     = let (n, m) = if li+ln < ri+rm then (ri+rn-li, ri+rm+lm-ln-li) else (ln-rm+rn, lm)
       in Replace li n m
@@ -214,21 +214,21 @@ instance Semigroup Replace where
     | li < ri+rm
       -- r straddles the left end of l
       --
-      -- |----r-----|
-      --       |------l----|
-      -- ri    li   ri+rm  li+ln
+      -- > |----r-----|
+      -- >       |------l----|
+      -- > ri    li   ri+rm  li+ln
       --
       -- or
       --
-      -- |-------r----------|
-      --      |--l--|
-      -- ri   li    li+ln   ri+rm
+      -- > |-------r----------|
+      -- >      |--l--|
+      -- > ri   li    li+ln   ri+rm
     = let (n, m) = if ri+rm < li+ln then (li+ln-rm+rn-ri, li+lm-ri) else (rn, rm+lm-ln)
       in Replace ri n m
 
     | otherwise
-      -- |---r---|       |---l---|
-      -- ri      rm      li      ln
+      -- > |---r---|       |---l---|
+      -- > ri      rm      li      ln
     = Replace ri (li+ln-rm+rn-ri) (li+lm-ri)
 
 instance FT.Measured (Maybe Replace) Replace where
