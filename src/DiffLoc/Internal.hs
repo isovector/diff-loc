@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 module DiffLoc.Internal where
 
 import Data.FingerTree (FingerTree)
@@ -6,6 +6,7 @@ import qualified Data.FingerTree as FT
 
 -- $setup
 -- >>> import Control.Monad ((<=<))
+-- >>> import Test.QuickCheck
 -- >>> import DiffLoc.Test
 
 -- | @'mkSpan' s n@ represents a span of text with start location @s@ with length @n@.
@@ -69,13 +70,6 @@ precedes' s1 s2 | spanLength s2 == 0 = s1 `distantlyPrecedes` s2
 -- by @mkReplace 1 1 0@ (replace "b" with "" at index 1), and also by
 -- @mkReplace 0 2 1@ (replace "ab" with "a" at index 0).
 --
--- Empty replacements, whose source and target lengths are both zero,
--- are considered equal regardless of their start location.
---
--- @
--- 'mkReplace' x 0 0 '==' 'mkReplace' y 0 0  -- for any x and y
--- @
---
 -- Insertions are replacements with source spans of length zero.
 -- Deletions are replacements with target spans of length zero.
 --
@@ -91,16 +85,8 @@ precedes' s1 s2 | spanLength s2 == 0 = s1 `distantlyPrecedes` s2
 -- The right-to-left order of composition has the nice property that when @l@
 -- and @r@ are disjoint and @l@ is located to the left of @r@, @l <> r@ can
 -- also be viewed intuitively as performing @l@ and @r@ simultaneously.
---
--- 'mempty' is the empty replacement (remember that emoty replacements are all
--- equal).
 data Replace = Replace { start :: Int, srcLength :: Int, tgtLength :: Int }
-  deriving Show
-
-instance Eq Replace where
-  l == r | isEmpty l && isEmpty r = True
-         | isEmpty l || isEmpty r = False
-  Replace s n m == Replace s' n' m' = s == s' && n == n' && m == m'
+  deriving (Eq, Show)
 
 -- | Smart constructor for 'Replace'.
 --
@@ -114,8 +100,7 @@ mkReplace s n m = Replace s n m
 --
 -- __Condition__: not 'isEmpty'.
 replaceStart :: Replace -> Int
-replaceStart r | isEmpty r = error "diff-loc: empty replacement, its start location is undefined"
-replaceStart r = start r
+replaceStart = start
 
 -- | Source length of a 'Replace'.
 replaceSrcLength :: Replace -> Int
@@ -130,12 +115,10 @@ unsafeSrc :: Replace -> Span
 unsafeSrc (Replace i n _) = Span i n
 
 -- | The target span: the location of the result of the replacement.
--- This is only well-defined on nonempty replacements.
 unsafeTgt :: Replace -> Span
 unsafeTgt (Replace i _ m) = Span i m
 
--- | Whether a replacement is empty. Empty replacements are considered equal,
--- ignoring their start location.
+-- | Whether a replacement is empty.
 isEmpty :: Replace -> Bool
 isEmpty (Replace _ n m) = n == 0 && m == 0
 
@@ -164,9 +147,9 @@ emptyDiff :: Diff
 emptyDiff = Diff FT.empty
 
 -- | The monoid annotation in the fingertree gives the endpoints of the replacements.
-type Diff_ = FingerTree Replace Replace
+type Diff_ = FingerTree (Maybe Replace) Replace
 
--- The composition of two replacements @l <> r@ represents the replacement @r@
+-- | The composition of two replacements @l <> r@ represents the replacement @r@
 -- followed by @l@, as one replacement of an span that contains both @r@ and @l@.
 --
 -- We choose the right-to-left order because it coincides with the parallel
@@ -177,11 +160,8 @@ type Diff_ = FingerTree Replace Replace
 -- the start location of @r@, carefully avoiding other cases in the
 -- implementation of @Diff@.
 --
--- A special case for empty replacements lets us obtain a monoid (modulo
--- equating all empty replacements, ignoring their left endpoint).
+-- prop> \x y z -> (x <> y) <> z === x <> (y <> z :: Replace)
 instance Semigroup Replace where
-  l <> r | isEmpty l = r
-         | isEmpty r = l
   Replace li ln lm <> Replace ri rn rm
     | li + ln <= ri
       -- Disjoint, l on the left.
@@ -234,15 +214,12 @@ instance Semigroup Replace where
       in Replace ri n m
 
     | otherwise
-    = Replace ri (li+ln-ri) (li+lm+(rm-rn)-ri)
+      -- |---r---|       |---l---|
+      -- ri      rm      li      ln
+    = Replace ri (li+ln-rm+rn-ri) (li+lm-ri)
 
--- | All empty replacements @Replace (Span x 0) 0@ are considered equal,
--- ignoring their start location.
-instance Monoid Replace where
-  mempty = Replace 0 0 0
-
-instance FT.Measured Replace Replace where
-  measure = id
+instance FT.Measured (Maybe Replace) Replace where
+  measure = Just
 
 addReplaceL :: Replace -> Diff_ -> Diff_
 addReplaceL r d0 = case FT.viewl d0 of
@@ -254,18 +231,20 @@ addReplaceL r d0 = case FT.viewl d0 of
 --
 -- Properties:
 --
--- prop> addReplace mempty =.= id
 -- prop> \r d -> mapDiff (addReplace r d) =.= (mapReplace r <=< mapDiff d)
 -- prop> \r d -> comapDiff (addReplace r d) =.= (comapDiff d <=< comapReplace r)
 --
 -- where @(=.=)@ is pointwise equality of functions.
 addReplace :: Replace -> Diff -> Diff
 addReplace r d | isEmpty r = d
-addReplace r (Diff d) = Diff $ case FT.search (\r1 _-> not (isEmpty r1 || unsafeTgt r1 `precedes` unsafeTgt r)) d of
+addReplace r (Diff d) = Diff $ case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
   FT.Position d1 s d2 -> d1 <> addReplaceL (shiftReplace (- (deltaDiff (Diff d1))) r) (s FT.<| d2)
   FT.OnLeft -> addReplaceL r d
   FT.OnRight -> d FT.|> shiftReplace (- (deltaDiff (Diff d))) r
   FT.Nowhere -> error "Broken invariant"
+  where
+    notPrecedes_ Nothing _ = False
+    notPrecedes_ (Just r1) i = not (unsafeTgt r1 `precedes` unsafeTgt i)
 
 -- | Length difference of the replacement (target length - source length).
 deltaReplace :: Replace -> Int
@@ -273,7 +252,9 @@ deltaReplace (Replace _ n m) = m - n
 
 -- | Length difference of a diff (target length - source length).
 deltaDiff :: Diff -> Int
-deltaDiff (Diff d) = deltaReplace (FT.measure d)
+deltaDiff (Diff d) = case FT.measure d of
+  Nothing -> 0
+  Just r -> deltaReplace r
 
 -- | Move the start location of an span.
 shift :: Int -> Span -> Span
@@ -331,8 +312,8 @@ shiftReplace k (Replace i n m) = Replace (i + k) n m
 --
 -- Properties:
 --
--- prop> \d -> partialSemiInverse (mapDiff d) (comapDiff d)
--- prop> \d -> partialSemiInverse (comapDiff d) (mapDiff d)
+-- prop> \(FS d s) -> partialSemiInverse (mapDiff d) (comapDiff d) s
+-- prop> \(FS d s) -> partialSemiInverse (comapDiff d) (mapDiff d) s
 mapDiff :: Diff -> Span -> Maybe Span
 mapDiff = mapDiff_ Cov
 
@@ -354,7 +335,7 @@ signV Cov = id
 signV Contrav = negate
 
 mapDiff_ :: Variance -> Diff -> Span -> Maybe Span
-mapDiff_ v (Diff d) i = case FT.search (\r1 _ -> not (isEmpty r1 || srcV v r1 `precedes'` i)) d of
+mapDiff_ v (Diff d) i = case FT.search (\r1 _ -> r1 `notPrecedes_` i) d of
   FT.Position d1 s _ | j `precedes` srcV v s -> Just i'
                      | otherwise -> Nothing
     where i' = shift (signV v (deltaDiff (Diff d1))) i
@@ -362,6 +343,9 @@ mapDiff_ v (Diff d) i = case FT.search (\r1 _ -> not (isEmpty r1 || srcV v r1 `p
   FT.OnLeft -> Just i
   FT.OnRight -> Just (shift (signV v (deltaDiff (Diff d))) i)
   FT.Nowhere -> error "Broken invariant"
+  where
+    notPrecedes_ Nothing _ = False
+    notPrecedes_ (Just r1) i1 = not (srcV v r1 `precedes'` i1)
 
 -- | Translate a span in the source of a replacement to a span in its target.
 -- @Nothing@ if the span overlaps with the replacement.
