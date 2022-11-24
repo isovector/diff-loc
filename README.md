@@ -6,13 +6,13 @@ You have a diff between two versions of a file. Given a source span
 in one version, find the corresponding span in the other version.
 
 For example, here is a diff `d` between a source string `"abcdefgh"` and a target
-string `"appcfgqqh"`, with deletions and insertions in the middle:
+string `"appcfgzzh"`, with deletions and insertions in the middle:
 
 ```
   ab cdefg  h
 -  b  de
-+  pp     qq
-  appc  fgqqh
++  pp     zz
+  appc  fgzzh
 ```
 
 Diffs are represented by the type `Diff`.
@@ -22,7 +22,7 @@ Only locations and lengths are recorded, not the actual characters.
 let d :: Diff
     d = addReplace (mkReplace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
       $ addReplace (mkReplace 3 2 0)  -- at location 3, replace "de" with ""
-      $ addReplace (mkReplace 7 0 2)  -- at location 7, replace "" with "qq"
+      $ addReplace (mkReplace 7 0 2)  -- at location 7, replace "" with "zz"
       $ emptyDiff
 ```
 

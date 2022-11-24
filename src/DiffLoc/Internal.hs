@@ -131,24 +131,24 @@ isEmpty (Replace _ n m) = n == 0 && m == 0
 
 -- | A diff represents a transformation from one file to another.
 --
--- Example diff between "abcdefgh" and "appcfgqqh":
+-- Example diff between "abcdefgh" and "appcfgzzh":
 --
 -- > source ab cdefg  h
 -- >      -  b  de
--- >      +  pp     qq
--- > target appc  fgqqh
+-- >      +  pp     zz
+-- > target appc  fgzzh
 --
 -- It consists of three replacements:
 --
 -- 1. replace "b" with "pp" at location 1, @mkReplace 1 1 2@;
 -- 2. replace "de" with "" at location 3, @mkReplace 3 2 0@;
--- 3. replace "" with "qq" at location 7, @mkReplace 7 0 2@.
+-- 3. replace "" with "zz" at location 7, @mkReplace 7 0 2@.
 --
 -- >>> :{
 --   let d :: Diff
 --       d = addReplace (mkReplace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
 --         $ addReplace (mkReplace 3 2 0)  -- at location 3, replace "de" with ""
---         $ addReplace (mkReplace 7 0 2)  -- at location 7, replace "" with "qq"
+--         $ addReplace (mkReplace 7 0 2)  -- at location 7, replace "" with "zz"
 --         $ emptyDiff
 -- :}
 --
