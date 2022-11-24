@@ -28,7 +28,7 @@ library
       DiffLoc.Internal
     build-depends:
       fingertree,
-      base ^>=4.17.0.0
+      base >=4.15 && < 4.18
     hs-source-dirs:   src
     default-language: Haskell2010
     if flag(test)
