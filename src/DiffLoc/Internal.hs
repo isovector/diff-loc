@@ -21,7 +21,8 @@ import qualified Data.FingerTree as FT
 -- Example: drawing of @mkSpan 1 2@ in "abcde".
 --
 -- >  a b c d e
--- >   ^-+-+ length = 2
+-- > 0 1 2 3 4 5
+-- >   ^b+c+ length = 2
 -- >   ^
 -- >   ^ start = 1
 data Span = Span Int Int
@@ -29,7 +30,7 @@ data Span = Span Int Int
 
 -- | Smart constructor for 'Span'.
 --
--- __Condition__: the span length must be nonnegative.
+-- __Condition:__ the span length must be nonnegative.
 mkSpan :: Int {- ^ Start location -} -> Int {- ^ Length -} -> Span
 mkSpan _ l | l < 0 = error "diff-loc: negative span length"
 mkSpan s l = Span s l
@@ -64,11 +65,16 @@ precedes' s1 s2 | spanLength s2 == 0 = s1 `distantlyPrecedes` s2
 -- replacement (target).
 -- This representation does not keep track of the actual data being inserted.
 --
--- This may coarsely overapproximate the underlying text replacement,
+-- This may overapproximate the underlying text replacement,
 -- with spans being wider than necessary.
 -- For example, the transformation from "abc" to "ac" could be represented
--- by @mkReplace 1 1 0@ (replace "b" with "" at index 1), and also by
--- @mkReplace 0 2 1@ (replace "ab" with "a" at index 0).
+-- by @mkReplace 1 1 0@ (replace "b" with "" at location 1), and also by
+-- @mkReplace 0 2 1@ (replace "ab" with "a" at location 0).
+--
+-- > source   abc   abc
+-- >      -    b    ab
+-- >      +         a
+-- > target   a c   a c
 --
 -- Insertions are replacements with source spans of length zero.
 -- Deletions are replacements with target spans of length zero.
@@ -77,9 +83,10 @@ precedes' s1 s2 | spanLength s2 == 0 = s1 `distantlyPrecedes` s2
 --
 -- Replacements can be composed using 'Semigroup'. @l <> r@ is the result
 -- of performing @r@ then @l@. Since this representation is span-based,
--- it can be a quite coarse overapproximation.
+-- it can be a quite coarse overapproximation. But this is mainly
+-- a building block for the more fine-grained 'Diff'.
 -- The composed replacement @l <> r@ consists of a source span that covers
--- the source spans of both operands. Note that order matters, because
+-- the source spans of both operands. @('<>')@ is not commutative, because
 -- replacements change the indices of elements.
 --
 -- The right-to-left order of composition has the nice property that when @l@
@@ -90,7 +97,7 @@ data Replace = Replace { start :: Int, srcLength :: Int, tgtLength :: Int }
 
 -- | Smart constructor for 'Replace'.
 --
--- __Condition__: the source and target lengths must be nonnegative.
+-- __Condition:__ the source and target lengths must be nonnegative.
 mkReplace :: Int {- ^ Start location -} -> Int {- ^ Source length -} -> Int {- ^ Target length -} -> Replace
 mkReplace _ n _ | n < 0 = error "diff-loc: negative source length"
 mkReplace _ _ m | m < 0 = error "diff-loc: negative target length"
@@ -126,18 +133,26 @@ isEmpty (Replace _ n m) = n == 0 && m == 0
 --
 -- Example diff between "abcdefgh" and "appcfgqqh":
 --
--- > a b  c d e f g    h
--- >  |11\ |222|    /\
--- >  |11|  \2/    |33|
--- > a pp c     f g qq h
+-- > source ab cdefg  h
+-- >      -  b  de
+-- >      +  pp     qq
+-- > target appc  fgqqh
 --
 -- It consists of three replacements:
 --
--- - replace "b" with "pp" at index 1, @mkReplace 1 1 2@;
--- - replace "de" with "" at index 3, @mkReplace 3 2 0@;
--- - replace "" with "qq" at index 7, @mkReplace 7 0 2@.
+-- 1. replace "b" with "pp" at location 1, @mkReplace 1 1 2@;
+-- 2. replace "de" with "" at location 3, @mkReplace 3 2 0@;
+-- 3. replace "" with "qq" at location 7, @mkReplace 7 0 2@.
 --
--- A diff is an sequence of /disjoint/ and /nonempty/ replacements,
+-- >>> :{
+--   let d :: Diff
+--       d = addReplace (mkReplace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
+--         $ addReplace (mkReplace 3 2 0)  -- at location 3, replace "de" with ""
+--         $ addReplace (mkReplace 7 0 2)  -- at location 7, replace "" with "qq"
+--         $ emptyDiff
+-- :}
+--
+-- Internally, a diff is an sequence of /disjoint/ and /nonempty/ replacements,
 -- /ordered/ by their source locations.
 newtype Diff = Diff Diff_
   deriving (Eq, Show)
@@ -160,7 +175,9 @@ type Diff_ = FingerTree (Maybe Replace) Replace
 -- the start location of @r@, carefully avoiding other cases in the
 -- implementation of @Diff@.
 --
--- prop> \x y z -> (x <> y) <> z === x <> (y <> z :: Replace)
+-- === Properties
+--
+-- prop> (x <> y) <> z === x <> (y <> z :: Replace)
 instance Semigroup Replace where
   Replace li ln lm <> Replace ri rn rm
     | li + ln <= ri
@@ -229,10 +246,10 @@ addReplaceL r d0 = case FT.viewl d0 of
 
 -- | Add a replacement to a diff. The replacement is performed /after/ the diff.
 --
--- Properties:
+-- === Properties
 --
--- prop> \r d -> mapDiff (addReplace r d) =.= (mapReplace r <=< mapDiff d)
--- prop> \r d -> comapDiff (addReplace r d) =.= (comapDiff d <=< comapReplace r)
+-- prop> mapDiff (addReplace r d) =.= (mapReplace r <=< mapDiff d)
+-- prop> comapDiff (addReplace r d) =.= (comapDiff d <=< comapReplace r)
 --
 -- where @(=.=)@ is pointwise equality of functions.
 addReplace :: Replace -> Diff -> Diff
@@ -269,15 +286,15 @@ shiftReplace k (Replace i n m) = Replace (i + k) n m
 --
 -- For exaple, given the following 'Diff' (or 'Replace') from "aAacCc" to "aAabbbcCc":
 --
--- > a A a     c C c
--- >       / \
--- >      |   |
--- > a A a bbb c C c
+-- > source aAa   cCc
+-- >      - 
+-- >      +    bbb
+-- > target aAabbbcCc
 --
 -- >>> r0 = mkReplace 3 0 3
 -- >>> d0 = addReplace r0 emptyDiff
 --
--- The span of \"A\" remains unchanged
+-- The span of \"A\" remains unchanged.
 --
 -- >>> mapDiff d0 (mkSpan 1 1)
 -- Just (Span 1 1)
@@ -310,10 +327,15 @@ shiftReplace k (Replace i n m) = Replace (i + k) n m
 -- >>> comapReplace r0 (mkSpan 2 5)
 -- Nothing
 --
--- Properties:
+-- === Properties
 --
 -- prop> \(FS d s) -> partialSemiInverse (mapDiff d) (comapDiff d) s
 -- prop> \(FS d s) -> partialSemiInverse (comapDiff d) (mapDiff d) s
+--
+-- where @partialSemiInverse f g x@ is the property
+--
+-- > if   f x == Just y   -- for some y
+-- > then g y == Just x
 mapDiff :: Diff -> Span -> Maybe Span
 mapDiff = mapDiff_ Cov
 
@@ -352,10 +374,15 @@ mapDiff_ v (Diff d) i = case FT.search (\r1 _ -> r1 `notPrecedes_` i) d of
 --
 -- See also 'mapDiff'.
 --
--- Properties:
+-- === Properties
 --
--- prop> \r -> partialSemiInverse (comapReplace r) (mapReplace r)
--- prop> \r -> partialSemiInverse (mapReplace r) (comapReplace r)
+-- prop> partialSemiInverse (comapReplace r) (mapReplace r)
+-- prop> partialSemiInverse (mapReplace r) (comapReplace r)
+--
+-- where @partialSemiInverse f g x@ is the property
+--
+-- > if   f x == Just y   -- for some y
+-- > then g y == Just x
 mapReplace :: Replace -> Span -> Maybe Span
 mapReplace = mapReplace_ Cov
 

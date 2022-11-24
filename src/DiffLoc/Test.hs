@@ -77,3 +77,4 @@ instance Arbitrary GoodSpan where
     let (s, ts') = walk i ts
     d <- listToDiff <$> traverse (\(x, y) -> mkReplace x (y-x) <$> getNonNegative <$> arbitrary) ts'
     pure (GS d s)
+
