@@ -1,4 +1,4 @@
-# *diff-loc*: Map file locations across diffs
+# *diff-loc*: Map file locations across diffs [![Hackage](https://img.shields.io/hackage/v/diff-loc.svg)](https://hackage.haskell.org/package/diff-loc)
 
 ## Example
 
@@ -71,3 +71,5 @@ corresponding output span.
 >>> mapDiff d (mkSpan 1 2)  -- "bc" contains "b" which is edited by the diff
 Nothing
 ```
+
+See the API documentation in [`DiffLoc`](https://hackage.haskell.org/package/diff-loc-0.1.0.0/docs/DiffLoc.html).
