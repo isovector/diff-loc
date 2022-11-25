@@ -9,8 +9,8 @@ import DiffLoc.Internal.Shift
 
 -- $setup
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Shift
--- >>> import DiffLoc.Test
+-- >>> import DiffLoc.Internal.Shift
+-- >>> import DiffLoc.Internal.Test
 
 -- | Line number.
 newtype Line = Line Int deriving (Eq, Ord, Show)

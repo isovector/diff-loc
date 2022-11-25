@@ -29,7 +29,7 @@ import qualified Prelude
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Test
+-- >>> import DiffLoc.Internal.Test
 -- >>> type N = Plain Int
 
 infixl 6 +
