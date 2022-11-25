@@ -26,7 +26,6 @@ import DiffLoc.Shift
 -- >>> import DiffLoc.Test
 -- >>> import DiffLoc.Colline
 -- >>> type V = Vallee
--- >>> type N = Plain Int
 
 -- | A diff represents a transformation from one file to another.
 --

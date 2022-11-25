@@ -18,6 +18,7 @@ module DiffLoc.Shift
   , deltaZero
   , delta
   , Plain(..)
+  , N
   ) where
 
 import Data.Coerce (Coercible, coerce)
@@ -304,6 +305,9 @@ newtype Plain a = Plain a
   deriving (Eq, Ord)
   deriving newtype (Num, Show)
   deriving (Semigroup, Monoid) via (Sum a)
+
+-- | Shorthand for common use case.
+type N = Plain Int
 
 instance (Num a, Ord a) => Affine (Plain a) where
   type Point (Plain a) = a

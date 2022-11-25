@@ -62,7 +62,7 @@ module DiffLoc
   ( -- * API
 
     -- ** Overview
-
+    
     -- |
     -- @
     -- --------------------------------------------------
@@ -141,10 +141,13 @@ module DiffLoc
 
     -- ** Plain indices
   , Plain(..)
+  , N
 
     -- ** Lines and columns
   , Colline(..)
   , Vallee(..)
+  , Line(..)
+  , Col(..)
   ) where
 
 import DiffLoc.Internal
