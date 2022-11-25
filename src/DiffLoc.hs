@@ -19,7 +19,7 @@
 -- Only locations and lengths are recorded, not the actual characters.
 --
 -- >>> :{
---   let d :: Diff (Replace N)
+--   let d :: DiffR N
 --       d = addReplace (Replace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
 --         $ addReplace (Replace 3 2 0)  -- at location 3, replace "de" with ""
 --         $ addReplace (Replace 7 0 2)  -- at location 7, replace "" with "zz"
@@ -62,6 +62,7 @@ module DiffLoc
   ( -- * API
     -- ** Diffs
     Diff()
+  , DiffR
   , emptyDiff
   , addReplace
   , mapDiff

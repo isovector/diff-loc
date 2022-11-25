@@ -19,17 +19,18 @@ Diffs are represented by the type `Diff`.
 Only locations and lengths are recorded, not the actual characters.
 
 ```
-let d :: Diff
-    d = addReplace (mkReplace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
-      $ addReplace (mkReplace 3 2 0)  -- at location 3, replace "de" with ""
-      $ addReplace (mkReplace 7 0 2)  -- at location 7, replace "" with "zz"
+let d :: DiffR N
+    d = addReplace (Replace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
+      $ addReplace (Replace 3 2 0)  -- at location 3, replace "de" with ""
+      $ addReplace (Replace 7 0 2)  -- at location 7, replace "" with "zz"
       $ emptyDiff
 ```
 
-The span `s` of `"fg"` in the first string starts at location 5 and has length 2.
+The span `s` of `"fg"` in the first string is an interval that starts at
+location 5 and has length 2.
 
 ```
-let s = mkSpan 5 2 :: Span
+let s = 5 :.. 2 :: Interval N
 ```
 
 Illustration of the span:
@@ -42,11 +43,11 @@ Illustration of the span:
           start 5
 ```
 
-After applying the diff, the resulting span has been shifted to location 4.
+After applying the diff, the span has been shifted to location 4.
 
 ```
->>> mapDiff d (mkSpan 5 2)
-Just (Span 4 2)
+>>> mapDiff d (5 :.. 2)
+Just (4 :.. 2)
 ```
 
 ```
@@ -60,15 +61,15 @@ Just (Span 4 2)
 Conversely, we can map spans from the target string to the source string of the diff:
 
 ```
->>> comapDiff d (mkSpan 4 2)
-Just (Span 5 2)
+>>> comapDiff d (4 :.. 2)
+Just (5 :.. 2)
 ```
 
 If part of the input span is modified by the diff, there is no
 corresponding output span.
 
 ```
->>> mapDiff d (mkSpan 1 2)  -- "bc" contains "b" which is edited by the diff
+>>> mapDiff d (1 :.. 2)  -- "bc" contains "b" which is edited by the diff
 Nothing
 ```
 

@@ -1,12 +1,17 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE
+  DerivingVia,
   FlexibleContexts,
-  FlexibleInstances #-}
+  FlexibleInstances,
+  PatternSynonyms,
+  ScopedTypeVariables,
+  StandaloneDeriving,
+  UndecidableInstances #-}
 module DiffLoc.Test
   ( (=.=)
   , partialSemiInverse
-  , GoodSpan(..)
-  , FairSpan(..)
+  , GoodSpan(.., GSN, GSV)
+  , FairSpan(.., FSN, FSV)
   ) where
 
 import Control.Applicative
@@ -17,6 +22,8 @@ import Test.QuickCheck
 
 import DiffLoc
 import DiffLoc.Internal
+import DiffLoc.Colline
+import DiffLoc.Shift
 
 -- $setup
 -- >>> import Data.Maybe
@@ -34,56 +41,77 @@ whenJust (Just x) f = property (f x)
 partialSemiInverse :: (Arbitrary a, Eq a, Show a) => (a -> Maybe b) -> (b -> Maybe a) -> a -> Property
 partialSemiInverse f g x = f x `whenJust` \y -> g y === Just x
 
-type Span = Interval (Plain Int)
-
-instance (Arbitrary a, Num a, Ord a) => Arbitrary (Plain a) where
-  arbitrary = Plain <$> getNonNegative <$> arbitrary
-
-instance Arbitrary Span where
+instance (Arbitrary v, Arbitrary (Point v)) => Arbitrary (Interval v) where
   arbitrary = do
-    (i, NonNegative n) <- arbitrary
+    (i, n) <- arbitrary
     pure (i :.. n)
-  shrink (i :.. n) = [ i' :.. n' | (i', NonNegative n') <- shrink (i, NonNegative n) ]
+  shrink (i :.. n) = [ i' :.. n' | (i', n') <- shrink (i, n) ]
 
-instance Arbitrary (Replace (Plain Int)) where
+instance (Arbitrary v, Arbitrary (Point v)) => Arbitrary (Replace v) where
   arbitrary = do
-    (i, NonNegative n, NonNegative m) <- arbitrary
+    (i, n, m) <- arbitrary
     pure (Replace i n m)
   shrink (Replace i n m) =
-    [ Replace i' n' m' | (i', NonNegative n', NonNegative m') <- shrink (i, NonNegative n, NonNegative m) ]
+    [ Replace i' n' m' | (i', n', m') <- shrink (i, n, m) ]
 
-instance Arbitrary (Diff (Replace (Plain Int))) where
-  arbitrary = listToDiff <$> (arbitrary :: Gen [Replace (Plain Int)])
+instance (Shift v, Arbitrary v) => Arbitrary (Diff v) where
+  arbitrary = listToDiff <$> (arbitrary :: Gen [v])
   shrink (Diff d) = listToDiff <$> shrink (coerce (toList d))
 
 listToDiff :: Shift r => [r] -> Diff r
 listToDiff = foldr addReplace emptyDiff
 
 -- | Generate GoodSpan most of the time, but also some completely arbitrary ones once in a while.
-data FairSpan = FS (Diff (Replace (Plain Int))) Span
-  deriving Show
-
-instance Arbitrary FairSpan where
-  arbitrary = frequency [(10, (\(GS d s) -> FS d s) <$> arbitrary), (1, arbitrary)]
+data FairSpan v = FS (Diff (Replace v)) (Interval v)
 
 -- | A Diff and a non-conflicting Span
-data GoodSpan = GS (Diff (Replace (Plain Int))) Span
-  deriving Show
+data GoodSpan v = GS (Diff (Replace v)) (Interval v)
+
+deriving instance (Show v, Show (Point v)) => Show (FairSpan v)
+deriving instance (Show v, Show (Point v)) => Show (GoodSpan v)
+
+pattern FSN :: Diff (Replace (Plain Int)) -> Interval (Plain Int) -> FairSpan (Plain Int)
+pattern FSN d s = FS d s
+
+pattern GSN :: Diff (Replace (Plain Int)) -> Interval (Plain Int) -> GoodSpan (Plain Int)
+pattern GSN d s = GS d s
+
+pattern FSV :: Diff (Replace Vallee) -> Interval Vallee -> FairSpan Vallee
+pattern FSV d s = FS d s
+
+pattern GSV :: Diff (Replace Vallee) -> Interval Vallee -> GoodSpan Vallee
+pattern GSV d s = GS d s
+
+instance (Affine v, Arbitrary v, Arbitrary (Point v)) => Arbitrary (FairSpan v) where
+  arbitrary = frequency [(10, (\(GS d s) -> FS d s) <$> arbitrary), (1, arbitrary)]
 
 -- |
--- prop> \(GS d s) -> isJust (mapDiff d s)
-instance Arbitrary GoodSpan where
+-- prop> \(GSN d s) -> isJust (mapDiff d s)
+-- prop> \(GSV d s) -> isJust (mapDiff d s)
+instance (Affine v, Arbitrary v, Arbitrary (Point v)) => Arbitrary (GoodSpan v) where
   arbitrary = do
     let pairs (x : y : xs) = (x, y) : pairs xs
         pairs _ = []
-        walk 0 ((x, y) : xs) | x == y = ((x+1) :.. 0, (\(a, b) -> (a+1, b+1)) <$> xs)
-                             | otherwise = (x :.. Plain (y-x), xs)
-        walk i (xy : xs) = (s, xy : ys)
-          where (s, ys) = walk (i-1) xs
-        walk _ [] = error "should not happen"
     ts <- pairs <$> sort <$> liftA2 (:) arbitrary (liftA2 (:) arbitrary arbitrary)
     i <- choose (0, length ts-1)
-    let (s, ts') = walk i ts
-    d <- listToDiff <$> traverse (\(x, y) -> Replace x (Plain (y-x)) <$> getNonNegative <$> arbitrary) ts'
+    let (s, ts') = case splitAt i ts of
+          (pre, (x, y) : suf) -> (x :.. (y .-. x), pre ++ suf)
+          _ -> error "should not happen"
+    d <- listToDiff <$> traverse (\(x, y) -> Replace x (y .-. x) <$> arbitrary) ts'
     pure (GS d s)
 
+deriving via NonNegative a instance (Arbitrary a, Num a, Ord a) => Arbitrary (Plain a)
+
+instance Arbitrary Line where
+  arbitrary = Line <$> getNonNegative <$> arbitrary
+
+instance Arbitrary Col where
+  arbitrary = Col <$> getNonNegative <$> arbitrary
+
+instance Arbitrary Colline where
+  arbitrary = Colline <$> arbitrary <*> arbitrary
+
+instance Arbitrary Vallee where
+  arbitrary = do
+    (NonNegative l, NonNegative c) <- arbitrary
+    pure (Vallee (Delta l) (Delta c))

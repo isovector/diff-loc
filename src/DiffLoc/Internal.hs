@@ -24,6 +24,8 @@ import DiffLoc.Shift
 -- >>> import Test.QuickCheck
 -- >>> import DiffLoc.Shift
 -- >>> import DiffLoc.Test
+-- >>> import DiffLoc.Colline
+-- >>> type V = Vallee
 -- >>> type N = Plain Int
 
 -- | A diff represents a transformation from one file to another.
@@ -42,7 +44,7 @@ import DiffLoc.Shift
 -- 3. replace "" with "zz" at location 7, @mkReplace 7 0 2@.
 --
 -- >>> :{
---   let d :: Diff (Replace N)
+--   let d :: DiffR N
 --       d = addReplace (Replace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
 --         $ addReplace (Replace 3 2 0)  -- at location 3, replace "de" with ""
 --         $ addReplace (Replace 7 0 2)  -- at location 7, replace "" with "zz"
@@ -55,6 +57,9 @@ import DiffLoc.Shift
 -- The monoid annotation in the fingertree gives the endpoints of the replacements.
 newtype Diff r = Diff (FingerTree (Maybe r) (R r))
   deriving (Eq, Show)
+
+-- | A shorthand for the common use case.
+type DiffR v = Diff (Replace v)
 
 -- | The empty diff.
 emptyDiff :: Semigroup r => Diff r
@@ -95,6 +100,10 @@ addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
     notPrecedes_ Nothing _ = False
     notPrecedes_ (Just r1) i = not (tgt r1 `distantlyPrecedes` tgt i)
     -- Using distantlyPrecedes here and in addReplaceL lets us merge adjacent intervals.
+
+-- $hidden
+-- prop> \(r :: Replace V) -> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff d) x
+-- prop> \(r :: Replace V) -> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock r) x
 
 -- | Translate a span in the source of a diff to a span in its target.
 -- @Nothing@ if the span overlaps with a replacement.
@@ -144,8 +153,8 @@ addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 --
 -- === Properties
 --
--- prop> \(FS d s) -> not (isEmpty s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
--- prop> \(FS d s) -> not (isEmpty s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
+-- prop> \(FSN d s) -> not (isEmpty s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
+-- prop> \(FSN d s) -> not (isEmpty s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
 --
 -- where @partialSemiInverse f g x@ is the property
 --
@@ -153,6 +162,11 @@ addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 -- > then g y == Just x
 mapDiff :: Shift r => Diff r -> Block r -> Maybe (Block r)
 mapDiff = mapDiff_ Cov
+
+-- $hidden
+--
+-- prop> \(FSV d s) -> not (isEmpty s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
+-- prop> \(FSV d s) -> not (isEmpty s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
 
 -- | Translate a span in the target of a diff to a span in its source.
 -- @Nothing@ if the span overlaps with a replacement.

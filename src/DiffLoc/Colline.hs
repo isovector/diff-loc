@@ -7,6 +7,11 @@ module DiffLoc.Colline where
 
 import DiffLoc.Shift
 
+-- $setup
+-- >>> import Test.QuickCheck
+-- >>> import DiffLoc.Shift
+-- >>> import DiffLoc.Test
+
 -- | Line number.
 newtype Line = Line Int deriving (Eq, Ord, Show)
 
@@ -17,13 +22,25 @@ newtype Col = Col Int deriving (Eq, Ord, Show)
 data Colline = Colline !Line !Col
   deriving (Eq, Ord, Show)
 
--- | What's between two 'Colline's.
+-- | The space between two 'Colline's.
 data Vallee = Vallee !(Delta Line) !(Delta Col)
+  deriving (Eq, Ord, Show)
+
+-- $hidden
+-- prop> (x <> y) <> z === x <> (y <> z :: Vallee)
 
 instance Semigroup Vallee where
   Vallee l c <> Vallee l' c'
     | l' == Delta 0 = Vallee l (c <> c')
     | otherwise = Vallee (l <> l') c'
+
+instance Monoid Vallee where
+  mempty = Vallee (Delta 0) (Delta 0)
+
+-- $hidden
+-- prop> (i .+ r) .+ s === i .+ (r <> s :: Vallee)
+-- prop> i <= j ==> (i .+ (j .-. i :: Vallee)) === j
+-- prop> (i .+ r) .-. i === (r :: Vallee)
 
 instance Affine Vallee where
   type Point Vallee = Colline
@@ -33,8 +50,8 @@ instance Affine Vallee where
     Colline (Line l0) (Col c0)
 
   Colline l c .-.? Colline l' c' = case compare l l' of
-    GT -> Nothing
-    EQ | c <= c' -> Just (Vallee deltaZero (c' `delta` c))
+    LT -> Nothing
+    EQ | c' <= c -> Just (Vallee deltaZero (c `delta` c'))
        | otherwise -> Nothing
-    LT -> let Col c0 = c' in Just (Vallee (l' `delta` l) (Delta c0))
+    GT -> let Col c0 = c in Just (Vallee (l `delta` l') (Delta c0))
 

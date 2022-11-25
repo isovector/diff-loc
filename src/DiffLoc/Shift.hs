@@ -10,6 +10,7 @@ module DiffLoc.Shift
   ( BlockOrder(..)
   , Shift(..)
   , Affine(..)
+  , (.-.)
   , Interval(..)
   , isEmpty
   , Replace(..)
@@ -43,6 +44,35 @@ class BlockOrder b where
   distantlyPrecedes :: b -> b -> Bool
 
 -- | Shift algebra.
+--
+-- __Laws:__
+--
+-- @
+-- 'src' \<$>   'shiftR' r s   =     'shiftBlock' r ('src' s)
+-- 'tgt' \<$>   'shiftR' r s   =     'shiftBlock' r ('tgt' s)
+-- 'src' \<$> 'coshiftR' r s   =   'coshiftBlock' r ('src' s)
+-- 'tgt' \<$> 'coshiftR' r s   =   'coshiftBlock' r ('tgt' s)
+--
+-- 'shiftBlock' r b = Just d   \<==>   'coshiftBlock' r d = Just b
+-- 'shiftR'     r s = Just z   \<==>   'coshiftR'     r z = Just s
+--
+-- 'shiftR' r s = Just z  &&  'shiftR' s r = Just q   ==>
+--   z '<>' r  =  q '<>' s
+--
+-- 'coshiftR' r s = Just z  &&  'coshiftR' s r = Just q   ==>
+--   r '<>' z  =  s '<>' q
+-- @
+--
+-- __Duality laws:__
+--
+-- @
+-- src = tgt . 'dual'
+-- tgt = src . 'dual'
+-- shiftBlock = coshiftBlock . 'dual'
+-- coshiftBlock = shiftBlock . 'dual'
+-- coshiftR = shiftR . 'dual'
+-- shiftR = coshiftR . 'dual'
+-- @
 class (Semigroup r, BlockOrder (Block r)) => Shift r where
   type Block r
   src :: r -> Block r
@@ -73,6 +103,14 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
 -- In other words, we only require the existence of "positive" vectors.
 -- This makes it possible to implement this class for line-column locations
 -- ("DiffLoc.Colline").
+--
+-- __Laws:__
+--
+-- @
+--               (x '.+' v) '.+' w  =  x '.+' (v '<>' w)
+-- x '<=' y  ==>  x '.+' (y '.-.' x)  =  y
+--              (x '.+' v) '.-.' x  =  x
+-- @
 class (Ord (Point v), Semigroup v) => Affine v where
   type Point v
 
@@ -85,7 +123,14 @@ class (Ord (Point v), Semigroup v) => Affine v where
   -- @j .-.? i@ must be defined ('Just') if @i <= j@,
   (.-.?) :: Point v -> Point v -> Maybe v
 
+-- $hidden
+-- prop> (x .+ v) .+ w  ===  x .+ (v <> w :: Plain Int)
+-- prop> x <= y  ==>  x .+ (y .-. x :: Plain Int)  ===  y
+-- prop> (x .+ v) .-. x   ===   (v :: Plain Int)
+
 infixl 6 .-.
+
+-- | A variant of @('.-.?')@ which throws an exception on @Nothing@.
 (.-.) :: Affine v => Point v -> Point v -> v
 i .-. j = case i .-.? j of
   Nothing -> error "undefined vector"
@@ -254,6 +299,7 @@ delta y x = Delta (coerce y - coerce x)
 
 --
 
+-- | One-dimensional indices.
 newtype Plain a = Plain a
   deriving (Eq, Ord)
   deriving newtype (Num, Show)
