@@ -148,6 +148,7 @@ module DiffLoc
   , Vallee(..)
   , Line(..)
   , Col(..)
+  , Delta(..)
   ) where
 
 import DiffLoc.Internal.Diff
