@@ -3,9 +3,9 @@
   TypeFamilies #-}
 
 -- | Affine space of line-column locations.
-module DiffLoc.Colline where
+module DiffLoc.Internal.Colline where
 
-import DiffLoc.Shift
+import DiffLoc.Internal.Shift
 
 -- $setup
 -- >>> import Test.QuickCheck

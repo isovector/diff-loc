@@ -150,6 +150,6 @@ module DiffLoc
   , Col(..)
   ) where
 
-import DiffLoc.Internal
-import DiffLoc.Shift
-import DiffLoc.Colline
+import DiffLoc.Internal.Diff
+import DiffLoc.Internal.Shift
+import DiffLoc.Internal.Colline

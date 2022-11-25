@@ -10,21 +10,21 @@
   TypeApplications,
   TypeFamilies,
   UndecidableInstances #-}
-module DiffLoc.Internal where
+module DiffLoc.Internal.Diff where
 
 import Data.Coerce
 import Data.Maybe
 import Data.FingerTree (FingerTree)
 import qualified Data.FingerTree as FT
 
-import DiffLoc.Shift
+import DiffLoc.Internal.Shift
 
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Shift
--- >>> import DiffLoc.Test
--- >>> import DiffLoc.Colline
+-- >>> import DiffLoc.Internal.Shift
+-- >>> import DiffLoc.Internal.Test
+-- >>> import DiffLoc.Internal.Colline
 -- >>> type V = Vallee
 
 -- | A diff represents a transformation from one file to another.

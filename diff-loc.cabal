@@ -25,9 +25,9 @@ library
     import:           warnings
     exposed-modules:
       DiffLoc
-      DiffLoc.Internal
-      DiffLoc.Shift
-      DiffLoc.Colline
+      DiffLoc.Internal.Colline
+      DiffLoc.Internal.Diff
+      DiffLoc.Internal.Shift
     build-depends:
       fingertree,
       base >=4.14 && < 4.18
@@ -35,6 +35,6 @@ library
     default-language: Haskell2010
     if flag(test)
       exposed-modules:
-        DiffLoc.Test
+        DiffLoc.Internal.Test
       build-depends:
         QuickCheck

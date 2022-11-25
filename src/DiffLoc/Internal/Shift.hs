@@ -6,7 +6,7 @@
   StandaloneDeriving,
   TypeFamilies,
   UndecidableInstances #-}
-module DiffLoc.Shift
+module DiffLoc.Internal.Shift
   ( BlockOrder(..)
   , Shift(..)
   , Affine(..)
@@ -131,7 +131,7 @@ class (Ord (Point v), Semigroup v) => Affine v where
 
 infixl 6 .-.
 
--- | A variant of @('.-.?')@ which throws an exception on @Nothing@.
+-- | An unsafe variant of @('.-.?')@ which throws an exception on @Nothing@.
 (.-.) :: Affine v => Point v -> Point v -> v
 i .-. j = case i .-.? j of
   Nothing -> error "undefined vector"
