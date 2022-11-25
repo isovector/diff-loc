@@ -97,7 +97,7 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
 --
 -- - Vectors can be added, that's the 'Semigroup' superclass.
 -- - Points can be translated along vectors using @('.+')@.
--- - Given two ordered points @i <= j@, @j .-.? i@ finds a vector @n@
+-- - Given two ordered points @i <= j@, @j '.-.?' i@ finds a vector @n@
 --   such that @i + n = j@.
 --
 -- In other words, we only require the existence of "positive" vectors.

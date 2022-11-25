@@ -52,7 +52,7 @@ import DiffLoc.Shift
 --   -- N.B.: replacements should be inserted right to left.
 -- :}
 --
--- Internally, a diff is an sequence of /disjoint/ and /nonempty/ replacements,
+-- Internally, a diff is a sequence of /disjoint/ and /nonempty/ replacements,
 -- /ordered/ by their source locations.
 -- The monoid annotation in the fingertree gives the endpoints of the replacements.
 newtype Diff r = Diff (FingerTree (Maybe r) (R r))
@@ -88,8 +88,6 @@ addReplaceL r (Diff d0) = case FT.viewl d0 of
 --
 -- prop> \(r :: Replace N) -> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff d) x
 -- prop> \(r :: Replace N) -> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock r) x
---
--- where @(=.=)@ is pointwise equality of functions.
 addReplace :: forall r. Shift r => r -> Diff r -> Diff r
 addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
   FT.Position d1 s d2 -> coerce (d1 <>) (addReplaceL (coshiftR' (FT.measure d1) r) (Diff (s FT.<| d2)))
