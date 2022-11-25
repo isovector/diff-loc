@@ -60,6 +60,66 @@
 -- Nothing
 module DiffLoc
   ( -- * API
+
+    -- ** Overview
+
+    -- |
+    -- @
+    -- --------------------------------------------------
+    -- |  data 'DiffR' r                                  |
+    -- |       'addReplace' :: r -> Diff r -> Diff r      |
+    -- |       'mapDiff' :: Diff r -> Block r -> Block r  |
+    -- --------------------------------------------------
+    --         | requires
+    --         v
+    -- **********************************************************************
+    -- *  class 'Shift' r                                                     *
+    -- *  type  'Block' r                                                     *
+    -- *        'src', 'tgt' :: r -> Block r                                    *
+    -- *        'shiftBlock', 'coshiftBlock' :: r -> Block r -> Maybe (Block r) *
+    -- *        'shiftR', 'coshiftR' :: r -> r -> Maybe r                       *
+    -- **********************************************************************
+    --         ^
+    --         | implements with
+    --         |          r = 'Replace' v
+    --         |    'Block' r = 'Interval' v
+    -- ---------------------
+    -- |  data 'Interval' v  |
+    -- |  data 'Replace' v   |
+    -- ---------------------
+    --         | requires
+    --         v
+    -- **********************************************************
+    -- *  class 'Affine' v                                        *
+    -- *  type  'Point' v                                         *
+    -- *  class Semigroup v                                     *
+    -- *  class Ord v                                           *
+    -- *        ('.+') :: Point v -> v -> Point v                 *
+    -- *        ('.-.?') :: Point v -> Point v -> Maybe (Point v) *
+    -- **********************************************************
+    --         ^                                      ^
+    --         | implements with                      |
+    --         |          v = 'Plain' n                 |
+    --         |    'Point' v = n                       |
+    -- -------------------------------                |
+    -- |  newtype 'Plain' a = Plain a  |                |
+    -- -------------------------------                |
+    --         | requires                             |
+    --         v                                      |
+    -- *****************                              |
+    -- *  class Num a  *       _______________________|
+    -- *  class Ord a  *      /
+    -- *****************     /
+    --                      /  implements with
+    --                     /            v = 'Vallee'
+    --                    /       'Point' v = 'Colline'
+    --                   /
+    -- --------------------------------
+    -- |  data 'Colline' = ('Line', 'Col')  |
+    -- |  data 'Vallee'                 |
+    -- --------------------------------
+    -- @
+
     -- ** Diffs
     Diff()
   , DiffR
