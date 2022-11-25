@@ -23,6 +23,7 @@ module DiffLoc.Internal.Shift
 
 import Data.Coerce (Coercible, coerce)
 import Data.Monoid (Sum(..))
+import GHC.Stack (HasCallStack)
 import Prelude hiding ((+))
 import qualified Prelude
 
@@ -132,7 +133,7 @@ class (Ord (Point v), Semigroup v) => Affine v where
 infixl 6 .-.
 
 -- | An unsafe variant of @('.-.?')@ which throws an exception on @Nothing@.
-(.-.) :: Affine v => Point v -> Point v -> v
+(.-.) :: HasCallStack => Affine v => Point v -> Point v -> v
 i .-. j = case i .-.? j of
   Nothing -> error "undefined vector"
   Just n -> n

@@ -138,6 +138,7 @@ module DiffLoc
 
     -- *** Ordered affine spaces
   , Affine(..)
+  , (.-.)
 
     -- ** Plain indices
   , Plain(..)
