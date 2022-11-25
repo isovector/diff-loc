@@ -26,6 +26,8 @@ library
     exposed-modules:
       DiffLoc
       DiffLoc.Internal
+      DiffLoc.Shift
+      DiffLoc.Colline
     build-depends:
       fingertree,
       base >=4.14 && < 4.18

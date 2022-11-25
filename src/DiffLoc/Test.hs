@@ -1,4 +1,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE
+  FlexibleContexts,
+  FlexibleInstances #-}
 module DiffLoc.Test
   ( (=.=)
   , partialSemiInverse
@@ -7,6 +10,7 @@ module DiffLoc.Test
   ) where
 
 import Control.Applicative
+import Data.Coerce
 import Data.Foldable (toList)
 import Data.List (sort)
 import Test.QuickCheck
@@ -30,35 +34,40 @@ whenJust (Just x) f = property (f x)
 partialSemiInverse :: (Arbitrary a, Eq a, Show a) => (a -> Maybe b) -> (b -> Maybe a) -> a -> Property
 partialSemiInverse f g x = f x `whenJust` \y -> g y === Just x
 
+type Span = Interval (Plain Int)
+
+instance (Arbitrary a, Num a, Ord a) => Arbitrary (Plain a) where
+  arbitrary = Plain <$> getNonNegative <$> arbitrary
+
 instance Arbitrary Span where
   arbitrary = do
     (i, NonNegative n) <- arbitrary
-    pure (mkSpan i n)
-  shrink (Span i n) = [ Span i' n' | (i', NonNegative n') <- shrink (i, NonNegative n) ]
+    pure (i :.. n)
+  shrink (i :.. n) = [ i' :.. n' | (i', NonNegative n') <- shrink (i, NonNegative n) ]
 
-instance Arbitrary Replace where
+instance Arbitrary (Replace (Plain Int)) where
   arbitrary = do
     (i, NonNegative n, NonNegative m) <- arbitrary
-    pure (mkReplace i n m)
+    pure (Replace i n m)
   shrink (Replace i n m) =
     [ Replace i' n' m' | (i', NonNegative n', NonNegative m') <- shrink (i, NonNegative n, NonNegative m) ]
 
-instance Arbitrary Diff where
-  arbitrary = listToDiff <$> (arbitrary :: Gen [Replace])
-  shrink (Diff d) = listToDiff <$> shrink (toList d)
+instance Arbitrary (Diff (Replace (Plain Int))) where
+  arbitrary = listToDiff <$> (arbitrary :: Gen [Replace (Plain Int)])
+  shrink (Diff d) = listToDiff <$> shrink (coerce (toList d))
 
-listToDiff :: [Replace] -> Diff
+listToDiff :: Shift r => [r] -> Diff r
 listToDiff = foldr addReplace emptyDiff
 
 -- | Generate GoodSpan most of the time, but also some completely arbitrary ones once in a while.
-data FairSpan = FS Diff Span
+data FairSpan = FS (Diff (Replace (Plain Int))) Span
   deriving Show
 
 instance Arbitrary FairSpan where
   arbitrary = frequency [(10, (\(GS d s) -> FS d s) <$> arbitrary), (1, arbitrary)]
 
 -- | A Diff and a non-conflicting Span
-data GoodSpan = GS Diff Span
+data GoodSpan = GS (Diff (Replace (Plain Int))) Span
   deriving Show
 
 -- |
@@ -67,14 +76,14 @@ instance Arbitrary GoodSpan where
   arbitrary = do
     let pairs (x : y : xs) = (x, y) : pairs xs
         pairs _ = []
-        walk 0 ((x, y) : xs) | x == y = (mkSpan (x+1) 0, (\(a, b) -> (a+1, b+1)) <$> xs)
-                             | otherwise = (mkSpan x (y-x), xs)
+        walk 0 ((x, y) : xs) | x == y = ((x+1) :.. 0, (\(a, b) -> (a+1, b+1)) <$> xs)
+                             | otherwise = (x :.. Plain (y-x), xs)
         walk i (xy : xs) = (s, xy : ys)
           where (s, ys) = walk (i-1) xs
         walk _ [] = error "should not happen"
     ts <- pairs <$> sort <$> liftA2 (:) arbitrary (liftA2 (:) arbitrary arbitrary)
     i <- choose (0, length ts-1)
     let (s, ts') = walk i ts
-    d <- listToDiff <$> traverse (\(x, y) -> mkReplace x (y-x) <$> getNonNegative <$> arbitrary) ts'
+    d <- listToDiff <$> traverse (\(x, y) -> Replace x (Plain (y-x)) <$> getNonNegative <$> arbitrary) ts'
     pure (GS d s)
 

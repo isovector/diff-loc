@@ -1,133 +1,30 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE
+  AllowAmbiguousTypes,
+  DerivingStrategies,
+  FlexibleContexts,
+  FlexibleInstances,
+  GeneralizedNewtypeDeriving,
+  MultiParamTypeClasses,
+  ScopedTypeVariables,
+  StandaloneDeriving,
+  TypeApplications,
+  TypeFamilies,
+  UndecidableInstances #-}
 module DiffLoc.Internal where
 
+import Data.Coerce
+import Data.Maybe
 import Data.FingerTree (FingerTree)
 import qualified Data.FingerTree as FT
+
+import DiffLoc.Shift
 
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
+-- >>> import DiffLoc.Shift
 -- >>> import DiffLoc.Test
-
--- | @'mkSpan' s n@ represents a span of text with start location @s@ with length @n@.
--- Note that spans of length zero are still considered distinct if their
--- locations are distinct.
---
--- A span can be thought of as the interval @[s, s+n]@, where the elements are
--- indices into the interstices /between/ characters. A span of length zero
--- is a single interstice between two characters, where some chunk of text may
--- be inserted.
---
--- Example: drawing of @mkSpan 1 2@ in "abcde".
---
--- >  a b c d e
--- > 0 1 2 3 4 5
--- >   ^b+c+ length = 2
--- >   ^
--- >   ^ start = 1
-data Span = Span Int Int
-  deriving (Eq, Ord, Show)
-
--- | Smart constructor for 'Span'.
---
--- __Condition:__ the span length must be nonnegative.
-mkSpan :: Int {- ^ Start location -} -> Int {- ^ Length -} -> Span
-mkSpan _ l | l < 0 = error "diff-loc: negative span length"
-mkSpan s l = Span s l
-
--- | Start location of a 'Span'.
-spanStart :: Span -> Int
-spanStart (Span s _) = s
-
--- | Length of a 'Span'.
-spanLength :: Span -> Int
-spanLength (Span _ n) = n
-
--- | @l `precedes` r@ if @l@ and @r@ are disjoint and is to the left of @r@.
-precedes :: Span -> Span -> Bool
-precedes (Span i n) (Span j _) = i + n <= j
-
--- | @l `distantlyPrecedes` r@ if @l `precedes` r@ and they don't touch.
-distantlyPrecedes :: Span -> Span -> Bool
-distantlyPrecedes (Span i n) (Span j _) = i + n < j
-
--- | Don't allow @s2@ to be at the right end of @s1@ if @s2@ is empty.
--- Using this to check for conflicts in @mapDiff@ and @mapReplace@ allows us
--- to merge adjacent replacements in @addReplace@.
-precedes' :: Span -> Span -> Bool
-precedes' s1 s2 | spanLength s2 == 0 = s1 `distantlyPrecedes` s2
-                | otherwise = s1 `precedes` s2
-
--- | A minimalistic representation of text replacements.
---
--- A replacement @'mkReplace' i n m@ is given by a start location @i@, the length
--- @n@ of the span to replace (source) and the length @m@ of its
--- replacement (target).
--- This representation does not keep track of the actual data being inserted.
---
--- This may overapproximate the underlying text replacement,
--- with spans being wider than necessary.
--- For example, the transformation from "abc" to "ac" could be represented
--- by @mkReplace 1 1 0@ (replace "b" with "" at location 1), and also by
--- @mkReplace 0 2 1@ (replace "ab" with "a" at location 0).
---
--- > source   abc   abc
--- >      -    b    ab
--- >      +         a
--- > target   a c   a c
---
--- Insertions are replacements with source spans of length zero.
--- Deletions are replacements with target spans of length zero.
---
--- === __Composition__
---
--- Replacements can be composed using 'Semigroup'. @l <> r@ is the result
--- of performing @r@ then @l@. Since this representation is span-based,
--- it can be a quite coarse overapproximation. But this is mainly
--- a building block for the more fine-grained 'Diff'.
--- The composed replacement @l <> r@ consists of a source span that covers
--- the source spans of both operands. @('<>')@ is not commutative, because
--- replacements change the indices of elements.
---
--- The right-to-left order of composition has the nice property that when @l@
--- and @r@ are disjoint and @l@ is located to the left of @r@, @l <> r@ can
--- also be viewed intuitively as performing @l@ and @r@ simultaneously.
-data Replace = Replace { start :: Int, srcLength :: Int, tgtLength :: Int }
-  deriving (Eq, Show)
-
--- | Smart constructor for 'Replace'.
---
--- __Condition:__ the source and target lengths must be nonnegative.
-mkReplace :: Int {- ^ Start location -} -> Int {- ^ Source length -} -> Int {- ^ Target length -} -> Replace
-mkReplace _ n _ | n < 0 = error "diff-loc: negative source length"
-mkReplace _ _ m | m < 0 = error "diff-loc: negative target length"
-mkReplace s n m = Replace s n m
-
--- | Starting point of a 'Replace'.
---
--- __Condition__: not 'isEmpty'.
-replaceStart :: Replace -> Int
-replaceStart = start
-
--- | Source length of a 'Replace'.
-replaceSrcLength :: Replace -> Int
-replaceSrcLength = srcLength
-
--- | Target length of a 'Replace'.
-replaceTgtLength :: Replace -> Int
-replaceTgtLength = tgtLength
-
--- | The source span.
-unsafeSrc :: Replace -> Span
-unsafeSrc (Replace i n _) = Span i n
-
--- | The target span: the location of the result of the replacement.
-unsafeTgt :: Replace -> Span
-unsafeTgt (Replace i _ m) = Span i m
-
--- | Whether a replacement is empty.
-isEmpty :: Replace -> Bool
-isEmpty (Replace _ n m) = n == 0 && m == 0
+-- >>> type N = Plain Int
 
 -- | A diff represents a transformation from one file to another.
 --
@@ -145,137 +42,59 @@ isEmpty (Replace _ n m) = n == 0 && m == 0
 -- 3. replace "" with "zz" at location 7, @mkReplace 7 0 2@.
 --
 -- >>> :{
---   let d :: Diff
---       d = addReplace (mkReplace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
---         $ addReplace (mkReplace 3 2 0)  -- at location 3, replace "de" with ""
---         $ addReplace (mkReplace 7 0 2)  -- at location 7, replace "" with "zz"
+--   let d :: Diff (Replace N)
+--       d = addReplace (Replace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
+--         $ addReplace (Replace 3 2 0)  -- at location 3, replace "de" with ""
+--         $ addReplace (Replace 7 0 2)  -- at location 7, replace "" with "zz"
 --         $ emptyDiff
+--   -- N.B.: replacements should be inserted right to left.
 -- :}
 --
 -- Internally, a diff is an sequence of /disjoint/ and /nonempty/ replacements,
 -- /ordered/ by their source locations.
-newtype Diff = Diff Diff_
+-- The monoid annotation in the fingertree gives the endpoints of the replacements.
+newtype Diff r = Diff (FingerTree (Maybe r) (R r))
   deriving (Eq, Show)
 
 -- | The empty diff.
-emptyDiff :: Diff
+emptyDiff :: Semigroup r => Diff r
 emptyDiff = Diff FT.empty
 
--- | The monoid annotation in the fingertree gives the endpoints of the replacements.
-type Diff_ = FingerTree (Maybe Replace) Replace
+-- | A newtype to carry a 'Measured' instance.
+newtype R r = R r
+  deriving newtype (Eq, Show)
 
--- | The composition of two replacements @l <> r@ represents the replacement @r@
--- followed by @l@, as one replacement of an span that contains both @r@ and @l@.
---
--- We choose the right-to-left order because it coincides with the parallel
--- composition of disjoint replacements, when @l@ is actually located on the
--- left of @r@.
---
--- === Properties
---
--- prop> (x <> y) <> z === x <> (y <> z :: Replace)
-instance Semigroup Replace where
-  Replace li ln lm <> Replace ri rn rm
-    | li + ln <= ri
-      -- Disjoint, l on the left.
-      --
-      -- Before:
-      -- > |---l---|       |---r---|
-      -- > li      li+ln   ri      ri+rn
-      --
-      -- After both replacements (r first),
-      -- with ld = lm-ln
-      --
-      -- > |---l---|       |---r---|
-      -- > li      li+lm   ri+ld   ri+rm+ld
-    = Replace li (ri+rn-li) (ri+rm+(lm-ln)-li)
+instance Semigroup r => FT.Measured (Maybe r) (R r) where
+  measure (R r) = Just r
 
-    | li <= ri
-      -- l straddles the left end of r
-      --
-      -- Note that the indices in l should be interpreted
-      -- as indices after r.
-      -- After replacing r, the replaced span r and the to-be-replaced
-      -- span l look like this:
-      --
-      -- >       |------r----|
-      -- > |----l-----|
-      -- > li    ri   li+ln  ri+rm
-      --
-      -- or this:
-      --
-      -- >      |--r--|
-      -- > |-------l----------|
-      -- > li   ri    ri+rm   li+ln
-      --
-    = let (n, m) = if li+ln < ri+rm then (ri+rn-li, ri+rm+lm-ln-li) else (ln-rm+rn, lm)
-      in Replace li n m
+coshiftR' :: Shift r => Maybe r -> r -> r
+coshiftR' Nothing = id
+coshiftR' (Just r) = fromMaybe (error "failed to shift disjoint intervals") . coshiftR r
 
-    | li < ri+rm
-      -- r straddles the left end of l
-      --
-      -- > |----r-----|
-      -- >       |------l----|
-      -- > ri    li   ri+rm  li+ln
-      --
-      -- or
-      --
-      -- > |-------r----------|
-      -- >      |--l--|
-      -- > ri   li    li+ln   ri+rm
-    = let (n, m) = if ri+rm < li+ln then (li+ln-rm+rn-ri, li+lm-ri) else (rn, rm+lm-ln)
-      in Replace ri n m
-
-    | otherwise
-      -- > |---r---|       |---l---|
-      -- > ri      rm      li      ln
-    = Replace ri (li+ln-rm+rn-ri) (li+lm-ri)
-
-instance FT.Measured (Maybe Replace) Replace where
-  measure = Just
-
-addReplaceL :: Replace -> Diff_ -> Diff_
-addReplaceL r d0 = case FT.viewl d0 of
-  FT.EmptyL -> FT.singleton r
-  s FT.:< d | unsafeSrc r `distantlyPrecedes` unsafeSrc s -> r FT.<| d0 -- merge adjacent replacements
-            | otherwise -> addReplaceL (r <> s) d
+addReplaceL :: forall r. Shift r => r -> Diff r -> Diff r
+addReplaceL r (Diff d0) = case FT.viewl d0 of
+  FT.EmptyL -> Diff (FT.singleton (R r))
+  R s FT.:< d | src r `distantlyPrecedes` src s -> Diff (R r FT.<| d0)
+              | otherwise -> addReplaceL (r <> s) (Diff d)
 
 -- | Add a replacement to a diff. The replacement is performed /after/ the diff.
 --
 -- === Properties
 --
--- prop> mapDiff (addReplace r d) =.= (mapReplace r <=< mapDiff d)
--- prop> comapDiff (addReplace r d) =.= (comapDiff d <=< comapReplace r)
+-- prop> \(r :: Replace N) -> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff d) x
+-- prop> \(r :: Replace N) -> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock r) x
 --
 -- where @(=.=)@ is pointwise equality of functions.
-addReplace :: Replace -> Diff -> Diff
-addReplace r d | isEmpty r = d
-addReplace r (Diff d) = Diff $ case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
-  FT.Position d1 s d2 -> d1 <> addReplaceL (shiftReplace (- (deltaDiff (Diff d1))) r) (s FT.<| d2)
-  FT.OnLeft -> addReplaceL r d
-  FT.OnRight -> d FT.|> shiftReplace (- (deltaDiff (Diff d))) r
+addReplace :: forall r. Shift r => r -> Diff r -> Diff r
+addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
+  FT.Position d1 s d2 -> coerce (d1 <>) (addReplaceL (coshiftR' (FT.measure d1) r) (Diff (s FT.<| d2)))
+  FT.OnLeft -> addReplaceL r (Diff d)
+  FT.OnRight -> Diff (d FT.|> R (coshiftR' (FT.measure d) r))
   FT.Nowhere -> error "Broken invariant"
   where
     notPrecedes_ Nothing _ = False
-    notPrecedes_ (Just r1) i = not (unsafeTgt r1 `precedes` unsafeTgt i)
-
--- | Length difference of the replacement (target length - source length).
-deltaReplace :: Replace -> Int
-deltaReplace (Replace _ n m) = m - n
-
--- | Length difference of a diff (target length - source length).
-deltaDiff :: Diff -> Int
-deltaDiff (Diff d) = case FT.measure d of
-  Nothing -> 0
-  Just r -> deltaReplace r
-
--- | Move the start location of an span.
-shift :: Int -> Span -> Span
-shift k (Span i n) = Span (i + k) n
-
--- | Move the start location of a replacement.
-shiftReplace :: Int -> Replace -> Replace
-shiftReplace k (Replace i n m) = Replace (i + k) n m
+    notPrecedes_ (Just r1) i = not (tgt r1 `distantlyPrecedes` tgt i)
+    -- Using distantlyPrecedes here and in addReplaceL lets us merge adjacent intervals.
 
 -- | Translate a span in the source of a diff to a span in its target.
 -- @Nothing@ if the span overlaps with a replacement.
@@ -287,110 +106,82 @@ shiftReplace k (Replace i n m) = Replace (i + k) n m
 -- >      +    bbb
 -- > target aAabbbcCc
 --
--- >>> r0 = mkReplace 3 0 3
+-- >>> r0 = Replace 3 0 3 :: Replace N
 -- >>> d0 = addReplace r0 emptyDiff
 --
 -- The span of \"A\" remains unchanged.
 --
--- >>> mapDiff d0 (mkSpan 1 1)
--- Just (Span 1 1)
--- >>> mapReplace r0 (mkSpan 1 1)
--- Just (Span 1 1)
--- >>> comapDiff d0 (mkSpan 1 1)
--- Just (Span 1 1)
--- >>> comapReplace r0 (mkSpan 1 1)
--- Just (Span 1 1)
+-- >>> mapDiff d0 (1 :.. 1)
+-- Just (1 :.. 1)
+-- >>> shiftBlock r0 (1 :.. 1)
+-- Just (1 :.. 1)
+-- >>> comapDiff d0 (1 :.. 1)
+-- Just (1 :.. 1)
+-- >>> coshiftBlock r0 (1 :.. 1)
+-- Just (1 :.. 1)
 --
 -- The span of \"C\" is shifted by 3 characters.
 --
--- >>> mapDiff d0 (mkSpan 4 1)
--- Just (Span 7 1)
--- >>> mapReplace r0 (mkSpan 4 1)
--- Just (Span 7 1)
--- >>> comapDiff d0 (mkSpan 7 1)
--- Just (Span 4 1)
--- >>> comapReplace r0 (mkSpan 7 1)
--- Just (Span 4 1)
+-- >>> mapDiff d0 (4 :.. 1)
+-- Just (7 :.. 1)
+-- >>> shiftBlock r0 (4 :.. 1)
+-- Just (7 :.. 1)
+-- >>> comapDiff d0 (7 :.. 1)
+-- Just (4 :.. 1)
+-- >>> coshiftBlock r0 (7 :.. 1)
+-- Just (4 :.. 1)
 --
 -- The span of "ac" overlaps with the replacement, so the mapping is undefined.
 --
--- >>> mapDiff d0 (mkSpan 2 2)
+-- >>> mapDiff d0 (2 :.. 2)
 -- Nothing
--- >>> mapReplace r0 (mkSpan 2 2)
+-- >>> shiftBlock r0 (2 :.. 2)
 -- Nothing
--- >>> comapDiff d0 (mkSpan 2 5)
+-- >>> comapDiff d0 (2 :.. 5)
 -- Nothing
--- >>> comapReplace r0 (mkSpan 2 5)
+-- >>> coshiftBlock r0 (2 :.. 5)
 -- Nothing
 --
 -- === Properties
 --
--- prop> \(FS d s) -> partialSemiInverse (mapDiff d) (comapDiff d) s
--- prop> \(FS d s) -> partialSemiInverse (comapDiff d) (mapDiff d) s
+-- prop> \(FS d s) -> not (isEmpty s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
+-- prop> \(FS d s) -> not (isEmpty s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
 --
 -- where @partialSemiInverse f g x@ is the property
 --
 -- > if   f x == Just y   -- for some y
 -- > then g y == Just x
-mapDiff :: Diff -> Span -> Maybe Span
+mapDiff :: Shift r => Diff r -> Block r -> Maybe (Block r)
 mapDiff = mapDiff_ Cov
 
 -- | Translate a span in the target of a diff to a span in its source.
 -- @Nothing@ if the span overlaps with a replacement.
 --
 -- See also 'mapDiff'.
-comapDiff :: Diff -> Span -> Maybe Span
+comapDiff :: Shift r => Diff r -> Block r -> Maybe (Block r)
 comapDiff = mapDiff_ Contrav
 
 data Variance = Cov | Contrav
 
-srcV :: Variance -> Replace -> Span
-srcV Cov = unsafeSrc
-srcV Contrav = unsafeTgt
+srcV :: Shift r => Variance -> r -> Block r
+srcV Cov = src
+srcV Contrav = tgt
 
-signV :: Variance -> Int -> Int
-signV Cov = id
-signV Contrav = negate
+shiftBlockV' :: Shift r => Variance -> Maybe r -> Block r -> Block r
+shiftBlockV' _ Nothing = id
+shiftBlockV' Cov (Just r) = fromMaybe (error "failed to shift disjoint intervals") . shiftBlock r
+shiftBlockV' Contrav (Just r) = fromMaybe (error "failed to shift disjoint intervals") . coshiftBlock r
 
-mapDiff_ :: Variance -> Diff -> Span -> Maybe Span
+mapDiff_ :: forall r. Shift r => Variance -> Diff r -> Block r -> Maybe (Block r)
 mapDiff_ v (Diff d) i = case FT.search (\r1 _ -> r1 `notPrecedes_` i) d of
-  FT.Position d1 s _ | j `precedes` srcV v s -> Just i'
-                     | otherwise -> Nothing
-    where i' = shift (signV v (deltaDiff (Diff d1))) i
+  FT.Position d1 (R s) _
+    | j `precedes` (srcV v s) -> Just i'
+    | otherwise -> Nothing
+    where i' = shiftBlockV' v (FT.measure d1) i
           j = case v of Cov -> i ; Contrav -> i'
   FT.OnLeft -> Just i
-  FT.OnRight -> Just (shift (signV v (deltaDiff (Diff d))) i)
+  FT.OnRight -> Just (shiftBlockV' v (FT.measure d) i)
   FT.Nowhere -> error "Broken invariant"
   where
     notPrecedes_ Nothing _ = False
-    notPrecedes_ (Just r1) i1 = not (srcV v r1 `precedes'` i1)
-
--- | Translate a span in the source of a replacement to a span in its target.
--- @Nothing@ if the span overlaps with the replacement.
---
--- See also 'mapDiff'.
---
--- === Properties
---
--- prop> partialSemiInverse (comapReplace r) (mapReplace r)
--- prop> partialSemiInverse (mapReplace r) (comapReplace r)
---
--- where @partialSemiInverse f g x@ is the property
---
--- > if   f x == Just y   -- for some y
--- > then g y == Just x
-mapReplace :: Replace -> Span -> Maybe Span
-mapReplace = mapReplace_ Cov
-
--- | Translate a span in the target of a replacement to a span in its source.
--- @Nothing@ if the span overlaps with the replacement.
---
--- See also 'mapDiff'.
-comapReplace :: Replace -> Span -> Maybe Span
-comapReplace = mapReplace_ Contrav
-
-mapReplace_ :: Variance -> Replace -> Span -> Maybe Span
-mapReplace_ v r i
-  | isEmpty r || i `precedes` srcV v r = Just i
-  | srcV v r `precedes'` i = Just (shift (signV v (deltaReplace r)) i)
-  | otherwise = Nothing
+    notPrecedes_ (Just r1) i1 = not (srcV v r1 `precedes` i1)
