@@ -28,7 +28,6 @@ module DiffLoc.Index
   , offset
   ) where
 
-import Data.Coerce (Coercible, coerce)
 import Data.Monoid (Sum(..))
 import Data.Proxy (Proxy(..))
 import GHC.Stack (HasCallStack)

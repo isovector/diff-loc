@@ -14,6 +14,11 @@ module DiffLoc.Interval
 import Prelude hiding ((+))
 import DiffLoc.Shift
 
+-- $setup
+-- >>> import DiffLoc
+-- >>> import DiffLoc.Test
+-- >>> import Test.QuickCheck
+
 -- Nicer looking formulas this way.
 
 infixl 6 +

@@ -14,7 +14,7 @@ import DiffLoc.Shift
 
 -- $setup
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Shift
+-- >>> import DiffLoc
 -- >>> import DiffLoc.Test
 
 -- | Line and column coordinates.
@@ -33,7 +33,7 @@ data Vallee dl dc = Vallee !dl !dc
 type Vallée = Vallee
 
 -- $hidden
--- prop> (x <> y) <> z === x <> (y <> z :: Vallee)
+-- prop> (x <> y) <> z === x <> (y <> z :: Vallee (Offset Int) (Offset Int))
 
 traversee ::
   Eq dl =>
@@ -59,9 +59,9 @@ instance (Monoid l, Eq l, Monoid c) => Monoid (Vallee l c) where
   mempty = Vallee mempty mempty
 
 -- $hidden
--- prop> (i .+ r) .+ s === i .+ (r <> s :: Vallee)
--- prop> i <= j ==> (i .+ (j .-. i :: Vallee)) === j
--- prop> (i .+ r) .-. i === (r :: Vallee)
+-- prop> (i .+ r) .+ s === (i .+ (r <> s) :: Colline N N')
+-- prop> i <= j ==> (i .+ (j .-. i)) === (j :: Colline N N')
+-- prop> (i .+ r) .-. (i :: Colline N N') === r
 
 instance (Affine l, Origin c) => Affine (Colline l c) where
   type Trans (Colline l c) = Vallee (Trans l) (Trans c)
@@ -73,7 +73,6 @@ instance (Affine l, Origin c) => Affine (Colline l c) where
     EQ | c' <= c -> Vallee mempty <$> (c .-.? c')
        | otherwise -> Nothing
     GT -> (l .-.? l') <&> \dl -> Vallee dl (fromOrigin c)
-    -- TODO: Tests should catch the typo replacing c with c'
 
 instance (Origin l, Origin c) => Origin (Colline l c) where
   origin = Colline origin origin

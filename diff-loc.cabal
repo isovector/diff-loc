@@ -40,4 +40,5 @@ library
       exposed-modules:
         DiffLoc.Test
       build-depends:
-        QuickCheck
+        QuickCheck,
+        quickcheck-higherorder

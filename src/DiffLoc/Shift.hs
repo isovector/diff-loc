@@ -21,6 +21,7 @@ import GHC.Stack (HasCallStack)
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
+-- >>> import DiffLoc
 -- >>> import DiffLoc.Test
 -- >>> type N = Plain Int
 
@@ -113,9 +114,9 @@ class (Ord p, Ord (Trans p), Monoid (Trans p)) => Affine p where
   (.-.?) :: p -> p -> Maybe (Trans p)
 
 -- $hidden
--- prop> (x .+ v) .+ w  ===  x .+ (v <> w :: Plain Int)
--- prop> x <= y  ==>  x .+ (y .-. x :: Plain Int)  ===  y
--- prop> (x .+ v) .-. x   ===   (v :: Plain Int)
+-- prop> (x .+ v) .+ w                   ===  (x .+ (v <> w) :: Plain Int)
+-- prop> x <= y  ==>  x .+ (y .-. x)     ===  (y :: Plain Int)
+-- prop> (x .+ v) .-. (x :: Plain Int)   ===   v
 
 infixl 6 .-.
 

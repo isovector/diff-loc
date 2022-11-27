@@ -33,11 +33,11 @@ import DiffLoc.Shift
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Shift
+-- >>> import Test.QuickCheck.HigherOrder
+-- >>> import DiffLoc
 -- >>> import DiffLoc.Test
--- >>> import DiffLoc.Colline
--- >>> type V = Vallee
--- >>> quickCheck = quickCheckWith stdArgs{maxSuccess=3000}
+-- >>> type NN' = Colline N N'
+-- >>> quickCheck = quickCheckWith' stdArgs{maxSuccess=3000}
 
 -- | A diff represents a transformation from one file to another.
 --
@@ -55,10 +55,10 @@ import DiffLoc.Shift
 -- 3. replace "" with "zz" at location 7, @mkReplace 7 0 2@.
 --
 -- >>> :{
---   let d :: DiffR N
---       d = addReplace (Replace 1 1 2)  -- at location 1, replace "b" (length 1) with "pp" (length 2)
---         $ addReplace (Replace 3 2 0)  -- at location 3, replace "de" with ""
---         $ addReplace (Replace 7 0 2)  -- at location 7, replace "" with "zz"
+--   let d :: Diff N
+--       d = addReplace (Replace 1 (offset 1) (offset 2))  -- at location 1, replace "b" (length 1) with "pp" (length 2)
+--         $ addReplace (Replace 3 (offset 2) (offset 0))  -- at location 3, replace "de" with ""
+--         $ addReplace (Replace 7 (offset 0) (offset 2))  -- at location 7, replace "" with "zz"
 --         $ emptyDiff
 --   -- N.B.: replacements should be inserted right to left.
 -- :}
@@ -99,8 +99,8 @@ addReplaceL r (ADiff d0) = case FT.viewl d0 of
 --
 -- === Properties
 --
--- prop> \(r :: Replace N) -> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff d) x
--- prop> \(r :: Replace N) -> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock r) x
+-- prop> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff (d :: Diff N)) x
+-- prop> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock (r :: Replace N)) x
 addReplace :: forall r. Shift r => r -> ADiff r -> ADiff r
 addReplace r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
   FT.Position d1 s d2 -> coerce (d1 <>) (addReplaceL (coshiftR' (FT.measure d1) r) (ADiff (s FT.<| d2)))
@@ -113,8 +113,8 @@ addReplace r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
     -- Using distantlyPrecedes here and in addReplaceL lets us merge adjacent intervals.
 
 -- $hidden
--- prop> \(r :: Replace V) -> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff d) x
--- prop> \(r :: Replace V) -> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock r) x
+-- prop> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff (d :: Diff NN')) x
+-- prop> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock (r :: Replace NN')) x
 
 -- | Translate a span in the source of a diff to a span in its target.
 -- @Nothing@ if the span overlaps with a replacement.
@@ -126,40 +126,40 @@ addReplace r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 -- >      +    bbb
 -- > target aAabbbcCc
 --
--- >>> r0 = Replace 3 0 3 :: Replace N
+-- >>> r0 = Replace 3 (offset 0) (offset 3) :: Replace N
 -- >>> d0 = addReplace r0 emptyDiff
 --
 -- The span of \"A\" remains unchanged.
 --
--- >>> mapDiff d0 (1 :.. 1)
--- Just (1 :.. 1)
--- >>> shiftBlock r0 (1 :.. 1)
--- Just (1 :.. 1)
--- >>> comapDiff d0 (1 :.. 1)
--- Just (1 :.. 1)
--- >>> coshiftBlock r0 (1 :.. 1)
--- Just (1 :.. 1)
+-- >>> mapDiff d0 (1 :.. offset 1)
+-- Just (1 :.. Offset 1)
+-- >>> shiftBlock r0 (1 :.. offset 1)
+-- Just (1 :.. Offset 1)
+-- >>> comapDiff d0 (1 :.. offset 1)
+-- Just (1 :.. Offset 1)
+-- >>> coshiftBlock r0 (1 :.. offset 1)
+-- Just (1 :.. Offset 1)
 --
 -- The span of \"C\" is shifted by 3 characters.
 --
--- >>> mapDiff d0 (4 :.. 1)
--- Just (7 :.. 1)
--- >>> shiftBlock r0 (4 :.. 1)
--- Just (7 :.. 1)
--- >>> comapDiff d0 (7 :.. 1)
--- Just (4 :.. 1)
--- >>> coshiftBlock r0 (7 :.. 1)
--- Just (4 :.. 1)
+-- >>> mapDiff d0 (4 :.. offset 1)
+-- Just (7 :.. Offset 1)
+-- >>> shiftBlock r0 (4 :.. offset 1)
+-- Just (7 :.. Offset 1)
+-- >>> comapDiff d0 (7 :.. offset 1)
+-- Just (4 :.. Offset 1)
+-- >>> coshiftBlock r0 (7 :.. offset 1)
+-- Just (4 :.. Offset 1)
 --
 -- The span of "ac" overlaps with the replacement, so the mapping is undefined.
 --
--- >>> mapDiff d0 (2 :.. 2)
+-- >>> mapDiff d0 (2 :.. offset 2)
 -- Nothing
--- >>> shiftBlock r0 (2 :.. 2)
+-- >>> shiftBlock r0 (2 :.. offset 2)
 -- Nothing
--- >>> comapDiff d0 (2 :.. 5)
+-- >>> comapDiff d0 (2 :.. offset 5)
 -- Nothing
--- >>> coshiftBlock r0 (2 :.. 5)
+-- >>> coshiftBlock r0 (2 :.. offset 5)
 -- Nothing
 --
 -- === Properties

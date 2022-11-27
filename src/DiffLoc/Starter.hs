@@ -5,13 +5,16 @@
   StandaloneDeriving,
   TypeOperators #-}
 module DiffLoc.Starter
-  ( Diff
-  , (:$:)(..)
+  ( -- * The heavy lifter
+    Diff
 
-    -- * Common shorthands
+    -- * Basic index types
   , Z
   , N
   , N'
+
+    -- * Under the hood
+  , (:$:)(..)
   ) where
 
 import Data.Coerce (Coercible)
@@ -20,6 +23,9 @@ import DiffLoc.Interval
 import DiffLoc.Index
 import DiffLoc.Shift
 
+-- $setup
+-- >>> import DiffLoc
+
 -- | A shorthand for the common use case of 'Diff'.
 type Diff p = ADiff (Replace p)
 
@@ -27,8 +33,8 @@ type Diff p = ADiff (Replace p)
 --
 -- >>> show (NoShow (Plain 3) :: Plain :$: Int)
 -- "3"
--- >>> show (Colline 4 2 :.. Vallee (offset 3) (offset 3) :: Colline N N)
--- "Colline 4 2 :.. Vallee 3 3
+-- >>> show (Colline 4 2 :.. Vallee (offset 3) (offset 3) :: Interval (Colline N N))
+-- "Colline 4 2 :.. Vallee (Offset 3) (Offset 3)"
 newtype f :$: x = NoShow (f x)
   deriving (Eq, Ord)
   deriving (Semigroup, Monoid, Affine, Origin) via (f x)
