@@ -29,7 +29,7 @@ data Colline l c = Colline !l !c
 data Vallee dl dc = Vallee !dl !dc
   deriving (Eq, Ord, Show)
 
--- | Il fallait le faire.
+-- | Sans commentaire.
 type Vallée = Vallee
 
 -- $hidden

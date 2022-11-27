@@ -59,16 +59,17 @@ module DiffLoc
   ( -- * API
 
     -- ** Overview
-    
+
     -- |
     -- @
-    -- --------------------------------------------------
+    --                                       "DiffLoc.Diff"
+    -- +------------------------------------------------+
     -- |  data 'Diff' r                                   |
-    -- |       'addDiff' :: r -> Diff r -> Diff r      |
+    -- |       'addDiff' :: r -> Diff r -> Diff r         |
     -- |       'mapDiff' :: Diff r -> Block r -> Block r  |
-    -- --------------------------------------------------
+    -- +------------------------------------------------+
     --         | requires
-    --         v
+    --         v                                                "DiffLoc.Shift"
     -- **********************************************************************
     -- *  class 'Shift' r                                                     *
     -- *  type  'Block' r                                                     *
@@ -78,43 +79,45 @@ module DiffLoc
     -- **********************************************************************
     --         ^
     --         | implements with
-    --         |          r = 'Replace' v
-    --         |    'Block' r = 'Interval' v
-    -- ---------------------
-    -- |  data 'Interval' v  |
-    -- |  data 'Replace' v   |
-    -- ---------------------
+    --         |          r = 'Replace' p
+    --         |    'Block' r = 'Interval' p
+    --         |
+    --         |
+    --         |  "DiffLoc.Interval"
+    -- +-------------------+
+    -- |  data 'Interval' p  |
+    -- |  data 'Replace' p   |
+    -- +-------------------+
     --         | requires
+    --         v                           "DiffLoc.Shift"
+    -- *************************************************
+    -- *  class 'Amor' p                                 *
+    -- *  type  'Trans' p                                *
+    -- *  class Ord p                                  *
+    -- *  class Ord ('Trans' p)                          *
+    -- *  class Monoid ('Trans' p)                       *<---+
+    -- *        ('.+') :: p -> Trans p -> p              *    |
+    -- *        ('.-.?') :: p -> p -> Maybe (Trans p)    *    |
+    -- *************************************************    |
+    --         ^                               ^            |
+    --         | implements with               |            | requires from
+    --         |          p = 'Plain' a          |            |        l as p
+    --         |    or    p = 'IndexFrom' n a    |            |    and c as p
+    --         |    'Trans' p = 'Offset' a         |            |
+    --         |                               |            |
+    --         |                               |            |  "DiffLoc.Colline"
+    --         |      "DiffLoc.Index"            |       +---------------------+
+    -- +--------------------------+            |       |  data 'Colline' l c   |
+    -- |  newtype 'Plain' a         |            |_______|  data 'Vallee' l' c'  |
+    -- |  newtype 'IndexFrom' n a   |                    +---------------------+
+    -- |  newtype 'Offset' a        |     implements with
+    -- +--------------------------+                p = 'Colline' l c
+    --         | requires                    'Trans' v = 'Vallee' ('Trans' l) ('Trans' c)
     --         v
-    -- **********************************************************
-    -- *  class 'Amor' v                                        *
-    -- *  type  'Point' v                                         *
-    -- *  class Semigroup v                                     *
-    -- *  class Ord v                                           *
-    -- *        ('.+') :: Point v -> v -> Point v                 *
-    -- *        ('.-.?') :: Point v -> Point v -> Maybe (Point v) *
-    -- **********************************************************
-    --         ^                                      ^
-    --         | implements with                      |
-    --         |          v = 'Plain' n                 |
-    --         |    'Point' v = n                       |
-    -- -------------------------------                |
-    -- |  newtype 'Plain' a = Plain a  |                |
-    -- -------------------------------                |
-    --         | requires                             |
-    --         v                                      |
-    -- *****************                              |
-    -- *  class Num a  *       _______________________|
-    -- *  class Ord a  *      /
-    -- *****************     /
-    --                      /  implements with
-    --                     /            v = 'Vallee'
-    --                    /       'Point' v = 'Colline'
-    --                   /
-    -- --------------------------------
-    -- |  data 'Colline' = ('Line', 'Col')  |
-    -- |  data 'Vallee'                 |
-    -- --------------------------------
+    -- *****************
+    -- *  class Num a  *
+    -- *  class Ord a  *
+    -- *****************
     -- @
 
     -- ** Diffs
