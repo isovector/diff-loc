@@ -26,6 +26,7 @@ import DiffLoc.Internal.Shift
 -- >>> import DiffLoc.Internal.Test
 -- >>> import DiffLoc.Internal.Colline
 -- >>> type V = Vallee
+-- >>> quickCheck = quickCheckWith stdArgs{maxSuccess=10000}
 
 -- | A diff represents a transformation from one file to another.
 --
