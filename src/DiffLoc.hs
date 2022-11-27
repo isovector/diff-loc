@@ -151,4 +151,5 @@ module DiffLoc
 import DiffLoc.Internal.Colline
 import DiffLoc.Internal.Diff
 import DiffLoc.Internal.Index
+import DiffLoc.Internal.Interval
 import DiffLoc.Internal.Shift

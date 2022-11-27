@@ -17,6 +17,7 @@ import Data.Maybe
 import Data.FingerTree (FingerTree)
 import qualified Data.FingerTree as FT
 
+import DiffLoc.Internal.Interval
 import DiffLoc.Internal.Shift
 
 -- $setup
