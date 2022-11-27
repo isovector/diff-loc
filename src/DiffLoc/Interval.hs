@@ -75,10 +75,6 @@ instance Amor p => BlockOrder (Interval p) where
 --
 -- Insertions are replacements with source intervals of length zero.
 -- Deletions are replacements with target intervals of length zero.
---
--- === __Composition__
---
--- Replacements can be composed using 'Semigroup'.
 data Replace p = Replace !p !(Trans p) !(Trans p)
 
 deriving instance (Eq p, Eq (Trans p)) => Eq (Replace p)

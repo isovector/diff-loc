@@ -57,7 +57,7 @@ instance (Num a, Ord a) => Amor (Plain a) where
 -- @TypeApplications@ to make the indexing scheme explicit.
 --
 -- @
--- origin @(IndexFrom n a) <= i
+-- (origin :: IndexFrom n a) <= i    -- for all i
 -- @
 newtype IndexFrom (n :: Nat) a = IndexFrom a
   deriving (Eq, Ord)

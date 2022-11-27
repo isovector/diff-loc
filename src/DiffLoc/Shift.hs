@@ -94,7 +94,7 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
 -- have a monotone @('<>')@:
 --
 -- @
--- v <= v'   ==>    w <= w'   =>   (v <> w) <= (v' <> w')
+-- v \<= v'   ==>    w \<= w'   =>   (v '<>' w) \<= (v' '<>' w')
 -- @
 --
 -- - Points can be translated along vectors using @('.+')@.
@@ -159,7 +159,7 @@ class Amor p => Origin p where
 -- | Translate the origin along a vector.
 --
 -- @
--- x <= y   <=>   ofOrigin x <= ofOrigin y
+-- x \<= y   <=>   ofOrigin x \<= ofOrigin y
 --
 -- 'ofOrigin' x '.+' v             =   'ofOrigin' (x '.+' v)
 -- 'ofOrigin' x '.-.' 'ofOrigin' y   =   x '.-.' y
@@ -170,12 +170,12 @@ ofOrigin v = origin .+ v
 -- | Find the vector from the origin to this point.
 --
 -- @
--- x <= y   <=>   fromOrigin x <= fromOrigin y
+-- x \<= y   <=>   fromOrigin x \<= fromOrigin y
 --
--- ofOriging (fromOrigin x) = x
--- fromOrigin (ofOrigin v) = v
+-- 'ofOrigin' ('fromOrigin' x) = x
+-- 'fromOrigin' ('ofOrigin' v) = v
 --
--- fromOrigin (x .+ v)  =   fromOrigin x <> v
+-- 'fromOrigin' (x .+ v)  =   'fromOrigin' x <> v
 -- @
 fromOrigin :: Origin p => p -> Trans p
 fromOrigin p = p .-. origin
