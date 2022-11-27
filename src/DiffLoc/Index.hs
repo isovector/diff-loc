@@ -78,7 +78,7 @@ knownNum = fromIntegral (natVal @n Proxy)
 
 -- | Constructor for 'IndexFrom'.
 --
--- See also 'indexFrom' in "DiffLoc.Unsafe", a variant of 'indexFromM' that
+-- See also 'DiffLoc.Unsafe.indexFrom' in "DiffLoc.Unsafe", a variant of 'indexFromM' that
 -- throws errors instead of using @Maybe@.
 indexFromM :: forall n a. (KnownNat n, Num a, Ord a) => a -> Maybe (IndexFrom n a)
 indexFromM i | knownNum @n <= i = Just (IndexFrom i)
@@ -122,7 +122,7 @@ instance Show a => Show (Offset a) where
 
 -- | Construct a nonnegative 'Offset'.
 --
--- See also 'offset' in "DiffLoc.Unsafe", a variant of 'offsetM' that
+-- See also 'DiffLoc.Unsafe.offset' in "DiffLoc.Unsafe", a variant of 'offsetM' that
 -- throws errors instead of using @Maybe@.
 offsetM :: (Num a, Ord a) => a -> Maybe (Offset a)
 offsetM i | 0 <= i = Just (Offset i)

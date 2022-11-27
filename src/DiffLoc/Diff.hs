@@ -126,7 +126,7 @@ addDiff r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 -- | Translate a span in the source of a diff to a span in its target.
 -- @Nothing@ if the span overlaps with a replacement.
 --
--- For exaple, given the following 'ADiff' (or 'Replace') from "aAacCc" to "aAabbbcCc":
+-- For exaple, given the following 'ADiff' (or 'DiffLoc.Interval.Replace') from "aAacCc" to "aAabbbcCc":
 --
 -- > source aAa   cCc
 -- >      - 
