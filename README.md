@@ -20,7 +20,7 @@ Only locations and lengths are recorded, not the actual characters.
 
 ```
 import DiffLoc
-import DiffLic.Unsafe (offset)
+import DiffLoc.Unsafe (offset)
 
 d :: Diff N
 d = addDiff (Replace 1 (offset 1) (offset 2))  -- at location 1, replace "b" (length 1) with "pp" (length 2)
