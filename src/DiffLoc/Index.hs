@@ -13,7 +13,7 @@ module DiffLoc.Index
     Plain(..)
 
     -- ** Indices bounded by an origin
-  , IndexFrom(..)
+  , IndexFrom()
   , indexFrom
   , indexFrom0
   , indexFrom1
@@ -32,6 +32,7 @@ import Data.Monoid (Sum(..))
 import Data.Proxy (Proxy(..))
 import GHC.Stack (HasCallStack)
 import GHC.TypeNats (KnownNat, Nat, natVal)
+import Text.Show.Combinators (showCon, (@|))
 import DiffLoc.Shift
 
 -- | One-dimensional indices.
@@ -56,8 +57,11 @@ instance (Num a, Ord a) => Affine (Plain a) where
 -- origin @(IndexFrom n a) <= i
 -- @
 newtype IndexFrom (n :: Nat) a = IndexFrom a
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord)
   deriving Affine via (Plain a)
+
+instance Show a => Show (IndexFrom n a) where
+  showsPrec = flip $ \(IndexFrom i) -> showCon "indexFrom" @| i
 
 instance (Num a, Ord a, KnownNat n) => Origin (IndexFrom n a) where
   origin = IndexFrom (knownNum @n)
@@ -101,8 +105,11 @@ zeroIndex (IndexFrom i) = IndexFrom (i - 1)
 
 -- | Type of nonnegative offsets.
 newtype Offset a = Offset a
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord)
   deriving (Semigroup, Monoid) via (Sum a)
+
+instance Show a => Show (Offset a) where
+  showsPrec = flip $ \(Offset i) -> showCon "offset" @| i
 
 -- | Construct a nonnegative 'Offset'. Otherwise an error is raised.
 offset :: (HasCallStack, Num a, Ord a) => a -> Offset a

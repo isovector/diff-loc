@@ -63,7 +63,7 @@ module DiffLoc
     -- |
     -- @
     -- --------------------------------------------------
-    -- |  data 'DiffR' r                                  |
+    -- |  data 'Diff' r                                   |
     -- |       'addReplace' :: r -> Diff r -> Diff r      |
     -- |       'mapDiff' :: Diff r -> Block r -> Block r  |
     -- --------------------------------------------------

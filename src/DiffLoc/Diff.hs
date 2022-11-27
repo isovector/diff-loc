@@ -21,11 +21,14 @@ module DiffLoc.Diff
   , addReplace
   , mapDiff
   , comapDiff
+  , listToDiff
   ) where
 
 import Data.Coerce
-import Data.Maybe
+import Data.Foldable (toList)
+import Data.Maybe (fromMaybe)
 import Data.FingerTree (FingerTree)
+import Text.Show.Combinators (showCon, (@|))
 import qualified Data.FingerTree as FT
 
 import DiffLoc.Shift
@@ -72,7 +75,10 @@ import DiffLoc.Shift
 -- /ordered/ by their source locations.
 -- The monoid annotation in the fingertree gives the endpoints of the replacements.
 newtype ADiff r = ADiff (FingerTree (Maybe r) (R r))
-  deriving (Eq, Show)
+  deriving Eq
+
+instance Show r => Show (ADiff r) where
+  showsPrec = flip $ \d -> showCon "listToDiff" @| diffToList d
 
 -- | The empty diff.
 emptyDiff :: Semigroup r => ADiff r
@@ -210,3 +216,14 @@ mapDiff_ v (ADiff d) i = case FT.search (\r1 _ -> r1 `notPrecedes_` i) d of
   where
     notPrecedes_ Nothing _ = False
     notPrecedes_ (Just r1) i1 = not (srcV v r1 `precedes` i1)
+
+-- |
+--
+-- @
+-- 'listToDiff' = foldr 'addReplace' 'emptyDiff'
+-- @
+listToDiff :: Shift r => [r] -> ADiff r
+listToDiff = foldr addReplace emptyDiff
+
+diffToList :: ADiff r -> [r]
+diffToList (ADiff d) = coerce (toList d)

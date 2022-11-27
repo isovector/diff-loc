@@ -68,9 +68,6 @@ instance (Shift r, Arbitrary r, Show r) => Constructible (ADiff r) where
   type Repr (ADiff r) = [r]
   fromRepr = listToDiff
 
-listToDiff :: Shift r => [r] -> ADiff r
-listToDiff = foldr addReplace emptyDiff
-
 -- | Generate GoodSpan most of the time, but also some completely arbitrary ones once in a while.
 data FairSpan p = FS (Diff p) (Interval p)
 

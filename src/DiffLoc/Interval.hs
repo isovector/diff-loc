@@ -44,6 +44,7 @@ data Interval p = !p :.. !(Trans p)
 
 infixl 3 :..
 
+-- | Is the interval empty?
 isEmpty :: (Eq (Trans p), Monoid (Trans p)) => Interval p -> Bool
 isEmpty (_ :.. n) = n == mempty
 
@@ -87,7 +88,7 @@ deriving instance (Show p, Show (Trans p)) => Show (Replace p)
 -- followed by @l@, as one replacement of an span that contains both @r@ and @l@.
 --
 -- The right-to-left order of composition has the nice property that when
--- @l `'precedes'` r@, @l <> r@ can also be viewed intuitively as performing @l@ and
+-- @l `'precedes` r@, @l <> r@ can also be viewed intuitively as performing @l@ and
 -- @r@ simultaneously.
 --
 -- === Properties
