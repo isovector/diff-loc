@@ -14,7 +14,7 @@
 -- | Mapping intervals across diffs
 module DiffLoc.Diff
   ( -- * Types
-    Diff()
+    ADiff()
 
     -- * Operations
   , emptyDiff
@@ -63,15 +63,20 @@ import DiffLoc.Shift
 --   -- N.B.: replacements should be inserted right to left.
 -- :}
 --
+-- 'ADiff' is an abstract representation to be instantiated with
+-- a concrete representation of atomic replacements.
+--
+-- == __Internal details__
+--
 -- Internally, a diff is a sequence of /disjoint/ and /nonempty/ replacements,
 -- /ordered/ by their source locations.
 -- The monoid annotation in the fingertree gives the endpoints of the replacements.
-newtype Diff r = Diff (FingerTree (Maybe r) (R r))
+newtype ADiff r = ADiff (FingerTree (Maybe r) (R r))
   deriving (Eq, Show)
 
 -- | The empty diff.
-emptyDiff :: Semigroup r => Diff r
-emptyDiff = Diff FT.empty
+emptyDiff :: Semigroup r => ADiff r
+emptyDiff = ADiff FT.empty
 
 -- | A newtype to carry a 'Measured' instance.
 newtype R r = R r
@@ -84,11 +89,11 @@ coshiftR' :: Shift r => Maybe r -> r -> r
 coshiftR' Nothing = id
 coshiftR' (Just r) = fromMaybe (error "failed to shift disjoint intervals") . coshiftR r
 
-addReplaceL :: forall r. Shift r => r -> Diff r -> Diff r
-addReplaceL r (Diff d0) = case FT.viewl d0 of
-  FT.EmptyL -> Diff (FT.singleton (R r))
-  R s FT.:< d | src r `distantlyPrecedes` src s -> Diff (R r FT.<| d0)
-              | otherwise -> addReplaceL (r <> s) (Diff d)
+addReplaceL :: forall r. Shift r => r -> ADiff r -> ADiff r
+addReplaceL r (ADiff d0) = case FT.viewl d0 of
+  FT.EmptyL -> ADiff (FT.singleton (R r))
+  R s FT.:< d | src r `distantlyPrecedes` src s -> ADiff (R r FT.<| d0)
+              | otherwise -> addReplaceL (r <> s) (ADiff d)
 
 -- | Add a replacement to a diff. The replacement is performed /after/ the diff.
 --
@@ -96,11 +101,11 @@ addReplaceL r (Diff d0) = case FT.viewl d0 of
 --
 -- prop> \(r :: Replace N) -> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff d) x
 -- prop> \(r :: Replace N) -> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock r) x
-addReplace :: forall r. Shift r => r -> Diff r -> Diff r
-addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
-  FT.Position d1 s d2 -> coerce (d1 <>) (addReplaceL (coshiftR' (FT.measure d1) r) (Diff (s FT.<| d2)))
-  FT.OnLeft -> addReplaceL r (Diff d)
-  FT.OnRight -> Diff (d FT.|> R (coshiftR' (FT.measure d) r))
+addReplace :: forall r. Shift r => r -> ADiff r -> ADiff r
+addReplace r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
+  FT.Position d1 s d2 -> coerce (d1 <>) (addReplaceL (coshiftR' (FT.measure d1) r) (ADiff (s FT.<| d2)))
+  FT.OnLeft -> addReplaceL r (ADiff d)
+  FT.OnRight -> ADiff (d FT.|> R (coshiftR' (FT.measure d) r))
   FT.Nowhere -> error "Broken invariant"
   where
     notPrecedes_ Nothing _ = False
@@ -114,7 +119,7 @@ addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 -- | Translate a span in the source of a diff to a span in its target.
 -- @Nothing@ if the span overlaps with a replacement.
 --
--- For exaple, given the following 'Diff' (or 'Replace') from "aAacCc" to "aAabbbcCc":
+-- For exaple, given the following 'ADiff' (or 'Replace') from "aAacCc" to "aAabbbcCc":
 --
 -- > source aAa   cCc
 -- >      - 
@@ -166,7 +171,7 @@ addReplace r (Diff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 --
 -- > if   f x == Just y   -- for some y
 -- > then g y == Just x
-mapDiff :: Shift r => Diff r -> Block r -> Maybe (Block r)
+mapDiff :: Shift r => ADiff r -> Block r -> Maybe (Block r)
 mapDiff = mapDiff_ Cov
 
 -- $hidden
@@ -178,7 +183,7 @@ mapDiff = mapDiff_ Cov
 -- @Nothing@ if the span overlaps with a replacement.
 --
 -- See also 'mapDiff'.
-comapDiff :: Shift r => Diff r -> Block r -> Maybe (Block r)
+comapDiff :: Shift r => ADiff r -> Block r -> Maybe (Block r)
 comapDiff = mapDiff_ Contrav
 
 data Variance = Cov | Contrav
@@ -192,8 +197,8 @@ shiftBlockV' _ Nothing = id
 shiftBlockV' Cov (Just r) = fromMaybe (error "failed to shift disjoint intervals") . shiftBlock r
 shiftBlockV' Contrav (Just r) = fromMaybe (error "failed to shift disjoint intervals") . coshiftBlock r
 
-mapDiff_ :: forall r. Shift r => Variance -> Diff r -> Block r -> Maybe (Block r)
-mapDiff_ v (Diff d) i = case FT.search (\r1 _ -> r1 `notPrecedes_` i) d of
+mapDiff_ :: forall r. Shift r => Variance -> ADiff r -> Block r -> Maybe (Block r)
+mapDiff_ v (ADiff d) i = case FT.search (\r1 _ -> r1 `notPrecedes_` i) d of
   FT.Position d1 (R s) _
     | j `precedes` (srcV v s) -> Just i'
     | otherwise -> Nothing

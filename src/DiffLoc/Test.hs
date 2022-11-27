@@ -20,9 +20,7 @@ import Data.Foldable (toList)
 import Data.List (sort)
 import Test.QuickCheck
 
-import DiffLoc.Diff
-import DiffLoc.Colline
-import DiffLoc.Shift
+import DiffLoc
 
 -- $setup
 -- >>> import Data.Maybe
