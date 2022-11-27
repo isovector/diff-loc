@@ -4,10 +4,14 @@
   TypeApplications #-}
 -- | Unsafe functions that will throw errors if misused.
 module DiffLoc.Unsafe
-  ( -- ** Smart constructors for 'IndexFrom'
-    indexFrom
+  ( -- ** Inverting monoid actions
+    (.-.)
+
+    -- ** Smart constructors for 'IndexFrom'
+  , indexFrom
   , indexFrom0
   , indexFrom1
+
     -- ** Smart constructor for 'Offset'
   , offset
   ) where
@@ -16,7 +20,16 @@ import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy(..))
 import GHC.Stack (HasCallStack)
 import GHC.TypeNats (KnownNat, natVal)
+import DiffLoc.Shift (Amor(Trans, (.-.?)))
 import DiffLoc.Index (IndexFrom, Offset, indexFromM, offsetM)
+
+infixl 6 .-.
+
+-- | An unsafe variant of @('.-.?')@ which throws an exception on @Nothing@.
+-- This operator may appear in class laws, imposing an implicit requirement
+-- that its operands must be ordered.
+(.-.) :: HasCallStack => Amor p => p -> p -> Trans p
+i .-. j = fromMaybe (error "undefined vector") (i .-.? j)
 
 -- | Constructor for 'IndexFrom'. The index must be greater than the origin,
 -- otherwise an error is raised.

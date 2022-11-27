@@ -16,6 +16,7 @@ import DiffLoc.Shift
 -- >>> import Test.QuickCheck
 -- >>> import DiffLoc
 -- >>> import DiffLoc.Test
+-- >>> import DiffLoc.Unsafe ((.-.))
 
 -- | Line and column coordinates.
 --

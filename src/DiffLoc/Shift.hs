@@ -11,19 +11,20 @@ module DiffLoc.Shift
 
     -- ** Indices and offsets
   , Amor(..)
-  , (.-.)
   , Origin(..)
   , fromOrigin
   , ofOrigin
   ) where
 
 import Data.Kind (Type)
+import Data.Maybe (fromMaybe)
 import GHC.Stack (HasCallStack)
 
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
 -- >>> import DiffLoc
+-- >>> import DiffLoc.Unsafe ((.-.))
 -- >>> import DiffLoc.Test
 -- >>> type N = Plain Int
 
@@ -114,8 +115,8 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
 --
 -- @
 --               (x '.+' v) '.+' w  =  x '.+' (v '<>' w)
--- x '<=' y  ==>  x '.+' (y '.-.' x)  =  y
---              (x '.+' v) '.-.' x  =  x
+-- x '<=' y  ==>  x '.+' (y 'DiffLoc.Unsafe..-.' x)  =  y
+--              (x '.+' v) 'DiffLoc.Unsafe..-.' x  =  x
 -- @
 class (Ord p, Ord (Trans p), Monoid (Trans p)) => Amor p where
   -- | Type of translations between points of @p@.
@@ -128,6 +129,8 @@ class (Ord p, Ord (Trans p), Monoid (Trans p)) => Amor p where
 
   -- | Translation between two points.
   -- @j .-.? i@ must be defined ('Just') if @i <= j@,
+  --
+  -- There is an unsafe wrapper @('DiffLoc.Unsafe..-.')@ in "DiffLoc.Unsafe".
   (.-.?) :: p -> p -> Maybe (Trans p)
 
 -- $hidden
@@ -137,13 +140,9 @@ class (Ord p, Ord (Trans p), Monoid (Trans p)) => Amor p where
 
 infixl 6 .-.
 
--- | An unsafe variant of @('.-.?')@ which throws an exception on @Nothing@.
--- This operator may appear in class laws, imposing an implicit requirement
--- that its operands must be ordered.
+-- | An unsafe variant of @('.-.?')@. This will be redefined in "DiffLoc.Unsafe".
 (.-.) :: HasCallStack => Amor p => p -> p -> Trans p
-i .-. j = case i .-.? j of
-  Nothing -> error "undefined vector"
-  Just n -> n
+i .-. j = fromMaybe (error "undefined vector") (i .-.? j)
 
 -- | Extend 'Amor' with an "origin" point from which vectors can be drawn to
 -- all points. To make the interface slightly more general, only the partial
@@ -163,7 +162,7 @@ class Amor p => Origin p where
 -- x \<= y   <=>   ofOrigin x \<= ofOrigin y
 --
 -- 'ofOrigin' x '.+' v             =   'ofOrigin' (x '.+' v)
--- 'ofOrigin' x '.-.' 'ofOrigin' y   =   x '.-.' y
+-- 'ofOrigin' x 'DiffLoc.Unsafe..-.' 'ofOrigin' y   =   x 'DiffLoc.Unsafe..-.' y
 -- @
 ofOrigin :: Origin p => Trans p -> p
 ofOrigin v = origin .+ v

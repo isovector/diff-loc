@@ -13,6 +13,7 @@ module DiffLoc.Interval
 
 import Prelude hiding ((+))
 import DiffLoc.Shift
+import DiffLoc.Unsafe ((.-.))
 
 -- $setup
 -- >>> import DiffLoc
