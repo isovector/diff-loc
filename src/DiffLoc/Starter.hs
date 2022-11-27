@@ -28,12 +28,13 @@ import DiffLoc.Unsafe
 
 -- $setup
 -- >>> import DiffLoc
+-- >>> import DiffLoc.Unsafe
 
 -- | A shorthand for the common use case of 'Diff'.
 type Diff p = ADiff (Replace p)
 
 -- | A trick to reduce noise by hiding newtype wrapper constructors.
--- This is used
+-- This makes the documentation more palatable.
 --
 -- >>> show (NoShow (Plain 3) :: Plain :$: Int)
 -- "3"

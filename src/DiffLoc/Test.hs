@@ -24,6 +24,7 @@ import Test.QuickCheck
 import Test.QuickCheck.HigherOrder
 
 import DiffLoc
+import DiffLoc.Unsafe
 
 -- $setup
 -- >>> import Data.Maybe

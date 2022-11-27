@@ -137,6 +137,8 @@ module DiffLoc
 
     -- ** Basic configurations to get started
   , module DiffLoc.Starter
+
+    -- $unsafe
   ) where
 
 import DiffLoc.Colline
@@ -145,3 +147,10 @@ import DiffLoc.Index
 import DiffLoc.Interval
 import DiffLoc.Shift
 import DiffLoc.Starter
+
+-- $unsafe
+-- The module "DiffLoc.Unsafe" is not reexported here.
+-- You can import it separately.
+
+-- $setup
+-- >>> import DiffLoc.Unsafe

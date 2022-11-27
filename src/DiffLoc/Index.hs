@@ -122,7 +122,7 @@ instance Show a => Show (Offset a) where
 
 -- | Construct a nonnegative 'Offset'.
 --
--- See also 'indexFrom' in "DiffLoc.Unsafe", a variant of 'offsetM' that
+-- See also 'offset' in "DiffLoc.Unsafe", a variant of 'offsetM' that
 -- throws errors instead of using @Maybe@.
 offsetM :: (Num a, Ord a) => a -> Maybe (Offset a)
 offsetM i | 0 <= i = Just (Offset i)

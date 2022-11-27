@@ -38,6 +38,7 @@ import DiffLoc.Shift
 -- >>> import Test.QuickCheck
 -- >>> import Test.QuickCheck.HigherOrder
 -- >>> import DiffLoc
+-- >>> import DiffLoc.Unsafe
 -- >>> import DiffLoc.Test
 -- >>> type NN' = Colline N N'
 -- >>> quickCheck = quickCheckWith' stdArgs{maxSuccess=3000}
@@ -84,7 +85,7 @@ instance Show r => Show (ADiff r) where
 emptyDiff :: Semigroup r => ADiff r
 emptyDiff = ADiff FT.empty
 
--- | A newtype to carry a 'Measured' instance.
+-- | A newtype to carry a 'FT.Measured' instance.
 newtype R r = R r
   deriving newtype (Eq, Show)
 
