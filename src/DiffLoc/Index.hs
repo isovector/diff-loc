@@ -7,6 +7,8 @@
   ScopedTypeVariables,
   TypeApplications,
   TypeFamilies #-}
+
+-- | Indices and offsets.
 module DiffLoc.Index
   ( -- * One-dimensional indices
     -- ** Unbounded indices
@@ -26,6 +28,7 @@ module DiffLoc.Index
     -- ** Offsets
   , Offset()
   , offset
+  , fromOffset
   ) where
 
 import Data.Monoid (Sum(..))
@@ -115,3 +118,7 @@ instance Show a => Show (Offset a) where
 offset :: (HasCallStack, Num a, Ord a) => a -> Offset a
 offset i | 0 <= i = Offset i
          | otherwise = error "Offset must not be negative"
+
+-- | Unwrap 'Offset'.
+fromOffset :: Offset a -> a
+fromOffset (Offset i) = i

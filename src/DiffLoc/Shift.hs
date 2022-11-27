@@ -1,6 +1,8 @@
 {-# LANGUAGE
   FlexibleContexts,
   TypeFamilies #-}
+
+-- | Interfaces of structures used to implement 'DiffLoc.ADiff'.
 module DiffLoc.Shift
   ( -- * Interfaces
     -- ** Replacement

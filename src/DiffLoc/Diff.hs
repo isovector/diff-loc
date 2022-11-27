@@ -138,24 +138,24 @@ addReplace r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 -- The span of \"A\" remains unchanged.
 --
 -- >>> mapDiff d0 (1 :.. offset 1)
--- Just (1 :.. Offset 1)
+-- Just (1 :.. offset 1)
 -- >>> shiftBlock r0 (1 :.. offset 1)
--- Just (1 :.. Offset 1)
+-- Just (1 :.. offset 1)
 -- >>> comapDiff d0 (1 :.. offset 1)
--- Just (1 :.. Offset 1)
+-- Just (1 :.. offset 1)
 -- >>> coshiftBlock r0 (1 :.. offset 1)
--- Just (1 :.. Offset 1)
+-- Just (1 :.. offset 1)
 --
 -- The span of \"C\" is shifted by 3 characters.
 --
 -- >>> mapDiff d0 (4 :.. offset 1)
--- Just (7 :.. Offset 1)
+-- Just (7 :.. offset 1)
 -- >>> shiftBlock r0 (4 :.. offset 1)
--- Just (7 :.. Offset 1)
+-- Just (7 :.. offset 1)
 -- >>> comapDiff d0 (7 :.. offset 1)
--- Just (4 :.. Offset 1)
+-- Just (4 :.. offset 1)
 -- >>> coshiftBlock r0 (7 :.. offset 1)
--- Just (4 :.. Offset 1)
+-- Just (4 :.. offset 1)
 --
 -- The span of "ac" overlaps with the replacement, so the mapping is undefined.
 --

@@ -37,7 +37,7 @@
 -- After applying the diff, the resulting span has been shifted to location 4.
 --
 -- >>> mapDiff d (5 :.. offset 2)
--- Just (4 :.. Offset 2)
+-- Just (4 :.. offset 2)
 --
 -- >  a p p c f g q q h
 -- > 0 1 2 3 4 5 6 7 8 9
@@ -48,7 +48,7 @@
 -- Conversely, we can map spans from the target string to the source string of the diff:
 --
 -- >>> comapDiff d (4 :.. offset 2)
--- Just (5 :.. Offset 2)
+-- Just (5 :.. offset 2)
 --
 -- If part of the input span is modified by the diff, there is no
 -- corresponding output span.
@@ -135,7 +135,7 @@ module DiffLoc
     -- ** Lines and columns
   , module DiffLoc.Colline
 
-    -- ** Basic configuration to get started
+    -- ** Basic configurations to get started
   , module DiffLoc.Starter
   ) where
 
