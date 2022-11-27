@@ -2,7 +2,7 @@
   GeneralizedNewtypeDeriving,
   TypeFamilies #-}
 
--- | Amor space of line-column locations.
+-- | Line-column locations and its offset monoid.
 module DiffLoc.Colline
   ( Colline(..)
   , Vallee(..)
@@ -22,10 +22,38 @@ import DiffLoc.Shift
 -- The generalization over types of line and column numbers
 -- frees us from any specific indexing scheme, notably whether
 -- columns are zero- or one-indexed.
+--
+-- === Example
+--
+-- > abc
+-- > de
+-- > fgh
+--
+-- Assuming the lines and columns are both 1-indexed, @"b"@ is at location
+-- @(Colline 1 2)@ and @"h"@ is at location @(Colline 3 3)@.
 data Colline l c = Colline !l !c
   deriving (Eq, Ord, Show)
 
 -- | The space between two 'Colline's.
+--
+-- This type represents offsets between text locations @x <= y@
+-- as the number of newlines inbetween and the number of characters
+-- from the last new line to @y@, if there is at least one newline,
+-- or the number of characters from @x@ to @y@.
+--
+-- === Example
+--
+-- > abc
+-- > de
+-- > fgh
+--
+-- - The offset from @"b"@ to @"h"@ is @Vallee 2 2@ (two newlines to reach line 3,
+--   and from the beginning of that line, advance two characters to reach h).
+-- - The offset from @"b"@ to @"c"@ is @Vallee 0 1@ (advance one character).
+--
+-- The offset from @"b"@ to @"h"@ is actually the same as from @"a"@ to @"h"@
+-- and from @"c"@ to @"h"@. Line-column offsets are thus not invertible.
+-- This was one of the main constraints in the design of the 'Amor' class.
 data Vallee dl dc = Vallee !dl !dc
   deriving (Eq, Ord, Show)
 

@@ -7,7 +7,7 @@
 -- | 'Interval' implements 'Shift'.
 module DiffLoc.Interval
   ( Interval(..)
-  , isEmpty
+  , isZeroLength
   , Replace(..)
   ) where
 
@@ -25,9 +25,11 @@ infixl 6 +
 (+) :: Semigroup a => a -> a -> a
 (+) = (<>)
 
--- | @i ':..' n@ is the interval @[i, i+n]@.
+-- | @(i ':..' n)@ represents a span of text between index @i@ and index @i+n@.
 --
--- Note that the length @n@ may be zero.
+-- The type of indices @p@ is expected to be an instance of 'Amor'.
+--
+-- The length @n@ in an interval @(i :.. n)@ may be zero.
 --
 -- The elements of the interval can be thought of as indexing the interstices
 -- /between/ characters. A span of length zero is a single interstice between
@@ -44,9 +46,9 @@ data Interval p = !p :.. !(Trans p)
 
 infixl 3 :..
 
--- | Is the interval empty?
-isEmpty :: (Eq (Trans p), Monoid (Trans p)) => Interval p -> Bool
-isEmpty (_ :.. n) = n == mempty
+-- | Does the interval have length zero?
+isZeroLength :: (Eq (Trans p), Monoid (Trans p)) => Interval p -> Bool
+isZeroLength (_ :.. n) = n == mempty
 
 deriving instance (Eq p, Eq (Trans p)) => Eq (Interval p)
 deriving instance (Show p, Show (Trans p)) => Show (Interval p)

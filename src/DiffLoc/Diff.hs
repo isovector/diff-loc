@@ -106,8 +106,8 @@ addDiffL r (ADiff d0) = case FT.viewl d0 of
 --
 -- === Properties
 --
--- prop> not (isEmpty x) ==> mapDiff (addDiff r d) x == (shiftBlock r <=< mapDiff (d :: Diff N)) x
--- prop> not (isEmpty x) ==> comapDiff (addDiff r d) x == (comapDiff d <=< coshiftBlock (r :: Replace N)) x
+-- prop> not (isZeroLength x) ==> mapDiff (addDiff r d) x == (shiftBlock r <=< mapDiff (d :: Diff N)) x
+-- prop> not (isZeroLength x) ==> comapDiff (addDiff r d) x == (comapDiff d <=< coshiftBlock (r :: Replace N)) x
 addDiff :: forall r. Shift r => r -> ADiff r -> ADiff r
 addDiff r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
   FT.Position d1 s d2 -> coerce (d1 <>) (addDiffL (coshiftR' (FT.measure d1) r) (ADiff (s FT.<| d2)))
@@ -120,8 +120,8 @@ addDiff r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
     -- Using distantlyPrecedes here and in addDiffL lets us merge adjacent intervals.
 
 -- $hidden
--- prop> not (isEmpty x) ==> mapDiff (addDiff r d) x == (shiftBlock r <=< mapDiff (d :: Diff NN')) x
--- prop> not (isEmpty x) ==> comapDiff (addDiff r d) x == (comapDiff d <=< coshiftBlock (r :: Replace NN')) x
+-- prop> not (isZeroLength x) ==> mapDiff (addDiff r d) x == (shiftBlock r <=< mapDiff (d :: Diff NN')) x
+-- prop> not (isZeroLength x) ==> comapDiff (addDiff r d) x == (comapDiff d <=< coshiftBlock (r :: Replace NN')) x
 
 -- | Translate a span in the source of a diff to a span in its target.
 -- @Nothing@ if the span overlaps with a replacement.
@@ -171,8 +171,8 @@ addDiff r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 --
 -- === Properties
 --
--- prop> \(FSN d s) -> not (isEmpty s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
--- prop> \(FSN d s) -> not (isEmpty s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
+-- prop> \(FSN d s) -> not (isZeroLength s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
+-- prop> \(FSN d s) -> not (isZeroLength s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
 --
 -- where @partialSemiInverse f g x@ is the property
 --
@@ -183,8 +183,8 @@ mapDiff = mapDiff_ Cov
 
 -- $hidden
 --
--- prop> \(FSV d s) -> not (isEmpty s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
--- prop> \(FSV d s) -> not (isEmpty s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
+-- prop> \(FSV d s) -> not (isZeroLength s) ==> partialSemiInverse (mapDiff d) (comapDiff d) s
+-- prop> \(FSV d s) -> not (isZeroLength s) ==> partialSemiInverse (comapDiff d) (mapDiff d) s
 
 -- | Translate a span in the target of a diff to a span in its source.
 -- @Nothing@ if the span overlaps with a replacement.
