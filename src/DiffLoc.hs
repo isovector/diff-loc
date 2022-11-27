@@ -112,7 +112,7 @@ module DiffLoc
     -- |  newtype 'IndexFrom' n a   |                    +---------------------+
     -- |  newtype 'Offset' a        |     implements with
     -- +--------------------------+                p = 'Colline' l c
-    --         | requires                    'Trans' v = 'Vallee' ('Trans' l) ('Trans' c)
+    --         | requires                    'Trans' p = 'Vallee' ('Trans' l) ('Trans' c)
     --         v
     -- *****************
     -- *  class Num a  *
