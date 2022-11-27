@@ -78,4 +78,4 @@ corresponding output span.
 Nothing
 ```
 
-See the API documentation in [`DiffLoc`](https://hackage.haskell.org/package/diff-loc-0.1.0.0/docs/DiffLoc.html).
+See the API documentation in [`DiffLoc`](https://hackage.haskell.org/package/diff-loc/docs/DiffLoc.html).
