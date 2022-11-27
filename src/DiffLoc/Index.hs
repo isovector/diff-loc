@@ -49,7 +49,7 @@ instance (Num a, Ord a) => Amor (Plain a) where
 
 --
 
--- | One-dimensional index with an origin.
+-- | One-dimensional indices with an origin (an initial index).
 -- Indices must be greater than the origin, hence the constructor is hidden.
 --
 -- Use 'indexFromM' to construct indices, with @TypeApplications@ to make the
