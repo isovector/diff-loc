@@ -121,35 +121,30 @@ module DiffLoc
     -- @
 
     -- ** Diffs
-    Diff()
-  , DiffR
-  , emptyDiff
-  , addReplace
-  , mapDiff
-  , comapDiff
+    module DiffLoc.Diff
 
-    -- ** Shift algebra
-  , Shift(..)
-  , BlockOrder(..)
+    -- ** Interfaces
+    --
+    -- - 'Shift', 'BlockOrder'
+    -- - 'Affine', 'Origin'
+  , module DiffLoc.Shift
 
-    -- *** Instance: Intervals and replacements
-  , Interval(..)
-  , Replace(..)
-
-    -- *** Ordered affine spaces
-  , Affine(..)
-  , (.-.)
+    -- ** Intervals and replacements
+  , module DiffLoc.Interval
 
     -- ** Plain indices
-  , Plain(..)
+  , module DiffLoc.Index
 
     -- ** Lines and columns
-  , Colline(..)
-  , Vallee(..)
+  , module DiffLoc.Colline
+
+    -- ** Basic configuration to get started
+  , module DiffLoc.Starter
   ) where
 
-import DiffLoc.Internal.Colline
-import DiffLoc.Internal.Diff
-import DiffLoc.Internal.Index
-import DiffLoc.Internal.Interval
-import DiffLoc.Internal.Shift
+import DiffLoc.Colline
+import DiffLoc.Diff
+import DiffLoc.Index
+import DiffLoc.Interval
+import DiffLoc.Shift
+import DiffLoc.Starter

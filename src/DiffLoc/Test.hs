@@ -7,7 +7,7 @@
   ScopedTypeVariables,
   StandaloneDeriving,
   UndecidableInstances #-}
-module DiffLoc.Internal.Test
+module DiffLoc.Test
   ( (=.=)
   , partialSemiInverse
   , GoodSpan(.., GSN, GSV)
@@ -20,9 +20,9 @@ import Data.Foldable (toList)
 import Data.List (sort)
 import Test.QuickCheck
 
-import DiffLoc.Internal.Diff
-import DiffLoc.Internal.Colline
-import DiffLoc.Internal.Shift
+import DiffLoc.Diff
+import DiffLoc.Colline
+import DiffLoc.Shift
 
 -- $setup
 -- >>> import Data.Maybe

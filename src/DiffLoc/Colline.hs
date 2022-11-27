@@ -3,15 +3,19 @@
   TypeFamilies #-}
 
 -- | Affine space of line-column locations.
-module DiffLoc.Internal.Colline where
+module DiffLoc.Colline
+  ( Colline(..)
+  , Vallee(..)
+  , Vallée
+  ) where
 
 import Data.Functor ((<&>))
-import DiffLoc.Internal.Shift
+import DiffLoc.Shift
 
 -- $setup
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Internal.Shift
--- >>> import DiffLoc.Internal.Test
+-- >>> import DiffLoc.Shift
+-- >>> import DiffLoc.Test
 
 -- | Line and column coordinates.
 --

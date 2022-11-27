@@ -5,14 +5,14 @@
   UndecidableInstances #-}
 
 -- | 'Interval' implements 'Shift'.
-module DiffLoc.Internal.Interval
+module DiffLoc.Interval
   ( Interval(..)
   , isEmpty
   , Replace(..)
   ) where
 
 import Prelude hiding ((+))
-import DiffLoc.Internal.Shift
+import DiffLoc.Shift
 
 -- Nicer looking formulas this way.
 

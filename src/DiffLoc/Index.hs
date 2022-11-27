@@ -7,7 +7,7 @@
   ScopedTypeVariables,
   TypeApplications,
   TypeFamilies #-}
-module DiffLoc.Internal.Index
+module DiffLoc.Index
   ( -- * One-dimensional indices
     -- ** Unbounded indices
     Plain(..)
@@ -33,7 +33,7 @@ import Data.Monoid (Sum(..))
 import Data.Proxy (Proxy(..))
 import GHC.Stack (HasCallStack)
 import GHC.TypeNats (KnownNat, Nat, natVal)
-import DiffLoc.Internal.Shift
+import DiffLoc.Shift
 
 -- | One-dimensional indices.
 newtype Plain a = Plain a

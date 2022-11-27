@@ -1,7 +1,7 @@
 {-# LANGUAGE
   FlexibleContexts,
   TypeFamilies #-}
-module DiffLoc.Internal.Shift
+module DiffLoc.Shift
   ( -- * Interfaces
     -- ** Replacement
     Shift(..)
@@ -21,7 +21,7 @@ import GHC.Stack (HasCallStack)
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Internal.Test
+-- >>> import DiffLoc.Test
 -- >>> type N = Plain Int
 
 -- | Ordering of interval-like things.

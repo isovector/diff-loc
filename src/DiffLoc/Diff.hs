@@ -10,22 +10,32 @@
   TypeApplications,
   TypeFamilies,
   UndecidableInstances #-}
-module DiffLoc.Internal.Diff where
+
+-- | Mapping intervals across diffs
+module DiffLoc.Diff
+  ( -- * Types
+    Diff()
+
+    -- * Operations
+  , emptyDiff
+  , addReplace
+  , mapDiff
+  , comapDiff
+  ) where
 
 import Data.Coerce
 import Data.Maybe
 import Data.FingerTree (FingerTree)
 import qualified Data.FingerTree as FT
 
-import DiffLoc.Internal.Interval
-import DiffLoc.Internal.Shift
+import DiffLoc.Shift
 
 -- $setup
 -- >>> import Control.Monad ((<=<))
 -- >>> import Test.QuickCheck
--- >>> import DiffLoc.Internal.Shift
--- >>> import DiffLoc.Internal.Test
--- >>> import DiffLoc.Internal.Colline
+-- >>> import DiffLoc.Shift
+-- >>> import DiffLoc.Test
+-- >>> import DiffLoc.Colline
 -- >>> type V = Vallee
 -- >>> quickCheck = quickCheckWith stdArgs{maxSuccess=3000}
 
@@ -58,9 +68,6 @@ import DiffLoc.Internal.Shift
 -- The monoid annotation in the fingertree gives the endpoints of the replacements.
 newtype Diff r = Diff (FingerTree (Maybe r) (R r))
   deriving (Eq, Show)
-
--- | A shorthand for the common use case.
-type DiffR v = Diff (Replace v)
 
 -- | The empty diff.
 emptyDiff :: Semigroup r => Diff r
