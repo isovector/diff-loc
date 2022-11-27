@@ -1,31 +1,31 @@
 {-# LANGUAGE
-  DerivingVia,
-  DerivingStrategies,
   FlexibleContexts,
-  GeneralizedNewtypeDeriving,
   StandaloneDeriving,
   TypeFamilies,
   UndecidableInstances #-}
 module DiffLoc.Internal.Shift
-  ( BlockOrder(..)
-  , Shift(..)
+  ( -- * Interfaces
+    -- ** Replacement
+    Shift(..)
+  , BlockOrder(..)
+
+    -- ** Indices and offsets
   , Affine(..)
   , (.-.)
+  , Origin(..)
+  , fromOrigin
+  , ofOrigin
+
+    -- * Implementations
+    -- ** Intervals and replacements
   , Interval(..)
   , isEmpty
   , Replace(..)
-  , Delta(..)
-  , deltaZero
-  , delta
-  , Plain(..)
-  , N
   ) where
 
-import Data.Coerce (Coercible, coerce)
-import Data.Monoid (Sum(..))
+import Data.Kind (Type)
 import GHC.Stack (HasCallStack)
 import Prelude hiding ((+))
-import qualified Prelude
 
 -- $setup
 -- >>> import Control.Monad ((<=<))
@@ -76,7 +76,7 @@ class BlockOrder b where
 -- shiftR = coshiftR . 'dual'
 -- @
 class (Semigroup r, BlockOrder (Block r)) => Shift r where
-  type Block r
+  type Block r :: Type
   src :: r -> Block r
   tgt :: r -> Block r
 
@@ -113,17 +113,17 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
 -- x '<=' y  ==>  x '.+' (y '.-.' x)  =  y
 --              (x '.+' v) '.-.' x  =  x
 -- @
-class (Ord (Point v), Semigroup v) => Affine v where
-  type Point v
+class (Ord p, Ord (Trans p), Monoid (Trans p)) => Affine p where
+  type Trans p :: Type
 
   infixr 6 .+
 
   -- | Translation.
-  (.+) :: Point v -> v -> Point v
+  (.+) :: p -> Trans p -> p
 
   -- | Vector between two points.
   -- @j .-.? i@ must be defined ('Just') if @i <= j@,
-  (.-.?) :: Point v -> Point v -> Maybe v
+  (.-.?) :: p -> p -> Maybe (Trans p)
 
 -- $hidden
 -- prop> (x .+ v) .+ w  ===  x .+ (v <> w :: Plain Int)
@@ -133,12 +133,48 @@ class (Ord (Point v), Semigroup v) => Affine v where
 infixl 6 .-.
 
 -- | An unsafe variant of @('.-.?')@ which throws an exception on @Nothing@.
-(.-.) :: HasCallStack => Affine v => Point v -> Point v -> v
+(.-.) :: HasCallStack => Affine p => p -> p -> Trans p
 i .-. j = case i .-.? j of
   Nothing -> error "undefined vector"
   Just n -> n
 
 infixl 3 :..
+
+-- | Extend 'Affine' with an "origin" point from which vectors can be drawn to
+-- all points. To make the interface slightly more general, only the partial
+-- application @(origin .-.)@ needs to be supplied.
+--
+-- __Laws:__
+--
+-- @
+-- 'origin' <= x
+-- @
+class Affine p => Origin p where
+  origin :: p
+
+-- | Translate the origin along a vector.
+--
+-- @
+-- x <= y   <=>   ofOrigin x <= ofOrigin y
+--
+-- 'ofOrigin' x '.+' v             =   'ofOrigin' (x '.+' v)
+-- 'ofOrigin' x '.-.' 'ofOrigin' y   =   x '.-.' y
+-- @
+ofOrigin :: Origin p => Trans p -> p
+ofOrigin v = origin .+ v
+
+-- | Find the vector from the origin to this point.
+--
+-- @
+-- x <= y   <=>   fromOrigin x <= fromOrigin y
+--
+-- ofOriging (fromOrigin x) = x
+-- fromOrigin (ofOrigin v) = v
+--
+-- fromOrigin (x .+ v)  =   fromOrigin x <> v
+-- @
+fromOrigin :: Origin p => p -> Trans p
+fromOrigin p = p .-. origin
 
 -- | @i ':..' n@ is the interval @[i, i+n]@.
 --
@@ -155,15 +191,15 @@ infixl 3 :..
 -- >   ^b+c+ length = 2
 -- >   ^
 -- >   ^ start = 1
-data Interval v = !(Point v) :.. !v
+data Interval p = !p :.. !(Trans p)
 
-isEmpty :: (Eq v, Monoid v) => Interval v -> Bool
+isEmpty :: (Eq (Trans p), Monoid (Trans p)) => Interval p -> Bool
 isEmpty (_ :.. n) = n == mempty
 
-deriving instance (Eq (Point v), Eq v) => Eq (Interval v)
-deriving instance (Show (Point v), Show v) => Show (Interval v)
+deriving instance (Eq p, Eq (Trans p)) => Eq (Interval p)
+deriving instance (Show p, Show (Trans p)) => Show (Interval p)
 
-instance Affine v => BlockOrder (Interval v) where
+instance Affine p => BlockOrder (Interval p) where
   precedes (i :.. n) (j :.. _) = i .+ n <= j
   distantlyPrecedes (i :.. n) (j :.. _) = i .+ n < j
 
@@ -191,10 +227,10 @@ instance Affine v => BlockOrder (Interval v) where
 -- === __Composition__
 --
 -- Replacements can be composed using 'Semigroup'.
-data Replace v = Replace !(Point v) !v !v
+data Replace p = Replace !p !(Trans p) !(Trans p)
 
-deriving instance (Eq (Point v), Eq v) => Eq (Replace v)
-deriving instance (Show (Point v), Show v) => Show (Replace v)
+deriving instance (Eq p, Eq (Trans p)) => Eq (Replace p)
+deriving instance (Show p, Show (Trans p)) => Show (Replace p)
 
 -- | The composition of two replacements @l <> r@ represents the replacement @r@
 -- followed by @l@, as one replacement of an span that contains both @r@ and @l@.
@@ -206,7 +242,7 @@ deriving instance (Show (Point v), Show v) => Show (Replace v)
 -- === Properties
 --
 -- prop> (x <> y) <> z === x <> (y <> z :: Replace (Plain Int))
-instance Affine v => Semigroup (Replace v) where
+instance Affine p => Semigroup (Replace p) where
   Replace li ln lm <> Replace ri rn rm
     | li .+ ln <= ri
       -- Disjoint, l on the left.
@@ -271,8 +307,8 @@ instance Affine v => Semigroup (Replace v) where
       --
     = Replace ri (rn + (li .-. (ri .+ rm)) + ln) ((li .+ lm) .-. ri)
 
-instance Affine v => Shift (Replace v) where
-  type Block (Replace v) = Interval v
+instance Affine p => Shift (Replace p) where
+  type Block (Replace p) = Interval p
   dual (Replace i n m) = Replace i m n
 
   src (Replace i n _) = i :.. n
@@ -286,32 +322,3 @@ instance Affine v => Shift (Replace v) where
     | j .+ p <= i = Just jpq
     | i .+ n <= j = Just (Replace (i .+ (m + (j .-. (i .+ n)))) p q)
     | otherwise = Nothing
-
--- | A phantom type for representing differences between @Int@ quantities.
-newtype Delta a = Delta Int
-  deriving (Eq, Ord, Show)
-  deriving (Semigroup, Monoid) via (Sum Int)
-
-deltaZero :: Delta a
-deltaZero = Delta 0
-
--- | Difference between two quantities.
-delta :: Coercible a Int => a -> a -> Delta a
-delta y x = Delta (coerce y - coerce x)
-
---
-
--- | One-dimensional indices.
-newtype Plain a = Plain a
-  deriving (Eq, Ord)
-  deriving newtype (Num, Show)
-  deriving (Semigroup, Monoid) via (Sum a)
-
--- | Shorthand for common use case.
-type N = Plain Int
-
-instance (Num a, Ord a) => Affine (Plain a) where
-  type Point (Plain a) = a
-  y .+ Plain x = x Prelude.+ y
-  x .-.? y | y <= x = Just (Plain (x - y))
-           | otherwise = Nothing

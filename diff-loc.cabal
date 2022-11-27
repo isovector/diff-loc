@@ -27,6 +27,7 @@ library
       DiffLoc
       DiffLoc.Internal.Colline
       DiffLoc.Internal.Diff
+      DiffLoc.Internal.Index
       DiffLoc.Internal.Shift
     build-depends:
       fingertree,

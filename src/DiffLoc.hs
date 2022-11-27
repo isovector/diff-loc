@@ -142,16 +142,13 @@ module DiffLoc
 
     -- ** Plain indices
   , Plain(..)
-  , N
 
     -- ** Lines and columns
   , Colline(..)
   , Vallee(..)
-  , Line(..)
-  , Col(..)
-  , Delta(..)
   ) where
 
-import DiffLoc.Internal.Diff
-import DiffLoc.Internal.Shift
 import DiffLoc.Internal.Colline
+import DiffLoc.Internal.Diff
+import DiffLoc.Internal.Index
+import DiffLoc.Internal.Shift

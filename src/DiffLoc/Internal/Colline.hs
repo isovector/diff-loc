@@ -5,6 +5,7 @@
 -- | Affine space of line-column locations.
 module DiffLoc.Internal.Colline where
 
+import Data.Functor ((<&>))
 import DiffLoc.Internal.Shift
 
 -- $setup
@@ -12,46 +13,63 @@ import DiffLoc.Internal.Shift
 -- >>> import DiffLoc.Internal.Shift
 -- >>> import DiffLoc.Internal.Test
 
--- | Line number.
-newtype Line = Line Int deriving (Eq, Ord, Show)
-
--- | Column number.
-newtype Col = Col Int deriving (Eq, Ord, Show)
-
--- | Line and column.
-data Colline = Colline !Line !Col
+-- | Line and column coordinates.
+--
+-- The generalization over types of line and column numbers
+-- frees us from any specific indexing scheme, notably whether
+-- columns are zero- or one-indexed.
+data Colline l c = Colline !l !c
   deriving (Eq, Ord, Show)
 
 -- | The space between two 'Colline's.
-data Vallee = Vallee !(Delta Line) !(Delta Col)
+data Vallee dl dc = Vallee !dl !dc
   deriving (Eq, Ord, Show)
+
+-- | Il fallait le faire.
+type Vallée = Vallee
 
 -- $hidden
 -- prop> (x <> y) <> z === x <> (y <> z :: Vallee)
 
-instance Semigroup Vallee where
-  Vallee l c <> Vallee l' c'
-    | l' == Delta 0 = Vallee l (c <> c')
-    | otherwise = Vallee (l <> l') c'
+traversee ::
+  Eq dl =>
+  dl ->
+  (l -> dl -> l) ->
+  (c -> dc -> c) ->
+  (dc -> c) ->
+  Colline l c -> Vallee dl dc -> Colline l c
+traversee zero actL actC fromO (Colline l c) (Vallee l' c')
+  | l' == zero = Colline l (c `actC` c')
+  | otherwise = Colline (l `actL` l') (fromO c')
 
-instance Monoid Vallee where
-  mempty = Vallee (Delta 0) (Delta 0)
+instance (Monoid l, Eq l, Semigroup c) => Semigroup (Vallee l c) where
+  x <> y = descente (traversee mempty (<>) (<>) id (montee x) y)
+    where
+      montee :: Vallee l c -> Colline l c
+      montee (Vallee l c) = Colline l c
+
+      descente :: Colline l c -> Vallee l c
+      descente (Colline l c) = Vallee l c
+
+instance (Monoid l, Eq l, Monoid c) => Monoid (Vallee l c) where
+  mempty = Vallee mempty mempty
 
 -- $hidden
 -- prop> (i .+ r) .+ s === i .+ (r <> s :: Vallee)
 -- prop> i <= j ==> (i .+ (j .-. i :: Vallee)) === j
 -- prop> (i .+ r) .-. i === (r :: Vallee)
 
-instance Affine Vallee where
-  type Point Vallee = Colline
+instance (Affine l, Origin c) => Affine (Colline l c) where
+  type Trans (Colline l c) = Vallee (Trans l) (Trans c)
 
-  Colline (Line l) (Col c) .+ Vallee l' c' =
-    let Vallee (Delta l0) (Delta c0) = Vallee (Delta l) (Delta c) <> Vallee l' c' in
-    Colline (Line l0) (Col c0)
+  (.+) = traversee mempty (.+) (.+) ofOrigin
 
   Colline l c .-.? Colline l' c' = case compare l l' of
     LT -> Nothing
-    EQ | c' <= c -> Just (Vallee deltaZero (c `delta` c'))
+    EQ | c' <= c -> Vallee mempty <$> (c .-.? c')
        | otherwise -> Nothing
-    GT -> let Col c0 = c in Just (Vallee (l `delta` l') (Delta c0))
+    GT -> (l .-.? l') <&> \dl -> Vallee dl (fromOrigin c)
+    -- TODO: Tests should catch the typo replacing c with c'
 
+instance (Origin l, Origin c) => Origin (Colline l c) where
+  origin = Colline origin origin
