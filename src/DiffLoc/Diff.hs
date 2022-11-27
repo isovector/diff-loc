@@ -18,7 +18,7 @@ module DiffLoc.Diff
 
     -- * Operations
   , emptyDiff
-  , addReplace
+  , addDiff
   , mapDiff
   , comapDiff
   , listToDiff
@@ -59,9 +59,9 @@ import DiffLoc.Shift
 --
 -- >>> :{
 --   let d :: Diff N
---       d = addReplace (Replace 1 (offset 1) (offset 2))  -- at location 1, replace "b" (length 1) with "pp" (length 2)
---         $ addReplace (Replace 3 (offset 2) (offset 0))  -- at location 3, replace "de" with ""
---         $ addReplace (Replace 7 (offset 0) (offset 2))  -- at location 7, replace "" with "zz"
+--       d = addDiff (Replace 1 (offset 1) (offset 2))  -- at location 1, replace "b" (length 1) with "pp" (length 2)
+--         $ addDiff (Replace 3 (offset 2) (offset 0))  -- at location 3, replace "de" with ""
+--         $ addDiff (Replace 7 (offset 0) (offset 2))  -- at location 7, replace "" with "zz"
 --         $ emptyDiff
 --   -- N.B.: replacements should be inserted right to left.
 -- :}
@@ -95,32 +95,32 @@ coshiftR' :: Shift r => Maybe r -> r -> r
 coshiftR' Nothing = id
 coshiftR' (Just r) = fromMaybe (error "failed to shift disjoint intervals") . coshiftR r
 
-addReplaceL :: forall r. Shift r => r -> ADiff r -> ADiff r
-addReplaceL r (ADiff d0) = case FT.viewl d0 of
+addDiffL :: forall r. Shift r => r -> ADiff r -> ADiff r
+addDiffL r (ADiff d0) = case FT.viewl d0 of
   FT.EmptyL -> ADiff (FT.singleton (R r))
   R s FT.:< d | src r `distantlyPrecedes` src s -> ADiff (R r FT.<| d0)
-              | otherwise -> addReplaceL (r <> s) (ADiff d)
+              | otherwise -> addDiffL (r <> s) (ADiff d)
 
 -- | Add a replacement to a diff. The replacement is performed /after/ the diff.
 --
 -- === Properties
 --
--- prop> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff (d :: Diff N)) x
--- prop> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock (r :: Replace N)) x
-addReplace :: forall r. Shift r => r -> ADiff r -> ADiff r
-addReplace r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
-  FT.Position d1 s d2 -> coerce (d1 <>) (addReplaceL (coshiftR' (FT.measure d1) r) (ADiff (s FT.<| d2)))
-  FT.OnLeft -> addReplaceL r (ADiff d)
+-- prop> not (isEmpty x) ==> mapDiff (addDiff r d) x == (shiftBlock r <=< mapDiff (d :: Diff N)) x
+-- prop> not (isEmpty x) ==> comapDiff (addDiff r d) x == (comapDiff d <=< coshiftBlock (r :: Replace N)) x
+addDiff :: forall r. Shift r => r -> ADiff r -> ADiff r
+addDiff r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
+  FT.Position d1 s d2 -> coerce (d1 <>) (addDiffL (coshiftR' (FT.measure d1) r) (ADiff (s FT.<| d2)))
+  FT.OnLeft -> addDiffL r (ADiff d)
   FT.OnRight -> ADiff (d FT.|> R (coshiftR' (FT.measure d) r))
   FT.Nowhere -> error "Broken invariant"
   where
     notPrecedes_ Nothing _ = False
     notPrecedes_ (Just r1) i = not (tgt r1 `distantlyPrecedes` tgt i)
-    -- Using distantlyPrecedes here and in addReplaceL lets us merge adjacent intervals.
+    -- Using distantlyPrecedes here and in addDiffL lets us merge adjacent intervals.
 
 -- $hidden
--- prop> not (isEmpty x) ==> mapDiff (addReplace r d) x == (shiftBlock r <=< mapDiff (d :: Diff NN')) x
--- prop> not (isEmpty x) ==> comapDiff (addReplace r d) x == (comapDiff d <=< coshiftBlock (r :: Replace NN')) x
+-- prop> not (isEmpty x) ==> mapDiff (addDiff r d) x == (shiftBlock r <=< mapDiff (d :: Diff NN')) x
+-- prop> not (isEmpty x) ==> comapDiff (addDiff r d) x == (comapDiff d <=< coshiftBlock (r :: Replace NN')) x
 
 -- | Translate a span in the source of a diff to a span in its target.
 -- @Nothing@ if the span overlaps with a replacement.
@@ -133,7 +133,7 @@ addReplace r (ADiff d) = case FT.search (\r1 _-> r1 `notPrecedes_` r) d of
 -- > target aAabbbcCc
 --
 -- >>> r0 = Replace 3 (offset 0) (offset 3) :: Replace N
--- >>> d0 = addReplace r0 emptyDiff
+-- >>> d0 = addDiff r0 emptyDiff
 --
 -- The span of \"A\" remains unchanged.
 --
@@ -220,10 +220,10 @@ mapDiff_ v (ADiff d) i = case FT.search (\r1 _ -> r1 `notPrecedes_` i) d of
 -- |
 --
 -- @
--- 'listToDiff' = foldr 'addReplace' 'emptyDiff'
+-- 'listToDiff' = foldr 'addDiff' 'emptyDiff'
 -- @
 listToDiff :: Shift r => [r] -> ADiff r
-listToDiff = foldr addReplace emptyDiff
+listToDiff = foldr addDiff emptyDiff
 
 diffToList :: ADiff r -> [r]
 diffToList (ADiff d) = coerce (toList d)

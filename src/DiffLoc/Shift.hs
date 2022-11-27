@@ -27,7 +27,7 @@ import GHC.Stack (HasCallStack)
 -- >>> import DiffLoc.Test
 -- >>> type N = Plain Int
 
--- | Ordering of interval-like things.
+-- | Partial ordering of interval-like things.
 class BlockOrder b where
   precedes :: b -> b -> Bool
 
@@ -118,6 +118,7 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
 --              (x '.+' v) '.-.' x  =  x
 -- @
 class (Ord p, Ord (Trans p), Monoid (Trans p)) => Amor p where
+  -- | Type of translations between points of @p@.
   type Trans p :: Type
 
   infixr 6 .+

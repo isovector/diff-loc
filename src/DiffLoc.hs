@@ -17,11 +17,11 @@
 --
 -- >>> :{
 --   let d :: Diff N
---       d = addReplace (Replace 1 (offset 1) (offset 2))  -- at location 1, replace "b" (length 1) with "pp" (length 2)
---         $ addReplace (Replace 3 (offset 2) (offset 0))  -- at location 3, replace "de" with ""
---         $ addReplace (Replace 7 (offset 0) (offset 2))  -- at location 7, replace "" with "zz"
+--       d = addDiff (Replace 1 (offset 1) (offset 2))  -- at location 1, replace "b" (length 1) with "pp" (length 2)
+--         $ addDiff (Replace 3 (offset 2) (offset 0))  -- at location 3, replace "de" with ""
+--         $ addDiff (Replace 7 (offset 0) (offset 2))  -- at location 7, replace "" with "zz"
 --         $ emptyDiff
---   -- N.B.: replacements should be inserted right to left.
+--   -- N.B.: replacements should be inserted right to left, starting from 'emptyDiff'.
 -- :}
 --
 -- The span @s@ of "fg" in the first string starts at location 5 and has length 2.
@@ -64,7 +64,7 @@ module DiffLoc
     -- @
     -- --------------------------------------------------
     -- |  data 'Diff' r                                   |
-    -- |       'addReplace' :: r -> Diff r -> Diff r      |
+    -- |       'addDiff' :: r -> Diff r -> Diff r      |
     -- |       'mapDiff' :: Diff r -> Block r -> Block r  |
     -- --------------------------------------------------
     --         | requires
