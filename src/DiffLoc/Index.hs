@@ -16,9 +16,9 @@ module DiffLoc.Index
 
     -- ** Indices bounded by an origin
   , IndexFrom()
-  , indexFrom
-  , indexFrom0
-  , indexFrom1
+  , indexFromM
+  , indexFromM0
+  , indexFromM1
   , fromIndex
   , fromIndex0
   , fromIndex1
@@ -27,13 +27,12 @@ module DiffLoc.Index
 
     -- ** Offsets
   , Offset()
-  , offset
+  , offsetM
   , fromOffset
   ) where
 
 import Data.Monoid (Sum(..))
 import Data.Proxy (Proxy(..))
-import GHC.Stack (HasCallStack)
 import GHC.TypeNats (KnownNat, Nat, natVal)
 import Text.Show.Combinators (showCon, (@|))
 import DiffLoc.Shift
@@ -53,8 +52,8 @@ instance (Num a, Ord a) => Amor (Plain a) where
 -- | One-dimensional index with an origin.
 -- Indices must be greater than the origin, hence the constructor is hidden.
 --
--- Use the 'indexFrom' function instead to construct indices, with
--- @TypeApplications@ to make the indexing scheme explicit.
+-- Use 'indexFromM' to construct indices, with @TypeApplications@ to make the
+-- indexing scheme explicit, and 'fromIndex' to destruct them.
 --
 -- @
 -- (origin :: IndexFrom n a) <= i    -- for all i
@@ -69,32 +68,39 @@ instance Show a => Show (IndexFrom n a) where
 instance (Num a, Ord a, KnownNat n) => Origin (IndexFrom n a) where
   origin = IndexFrom (knownNum @n)
 
+-- | Reify a 'KnownNat'.
+--
+-- @
+-- knownNum @42 = 42
+-- @
 knownNum :: forall n a. (KnownNat n, Num a) => a
 knownNum = fromIntegral (natVal @n Proxy)
 
--- | Constructor for 'IndexFrom'. The index must be greater than the origin,
--- otherwise an error is raised.
+-- | Constructor for 'IndexFrom'.
 --
--- @
--- origin <= indexFrom i
--- @
-indexFrom :: forall n a. (HasCallStack, KnownNat n, Num a, Ord a) => a -> IndexFrom n a
-indexFrom i | knownNum @n <= i = IndexFrom i
-            | otherwise = error ("IndexFrom must not be less than origin " <> show (natVal @n Proxy))
+-- See also 'indexFrom' in "DiffLoc.Unsafe", a variant of 'indexFromM' that
+-- throws errors instead of using @Maybe@.
+indexFromM :: forall n a. (KnownNat n, Num a, Ord a) => a -> Maybe (IndexFrom n a)
+indexFromM i | knownNum @n <= i = Just (IndexFrom i)
+             | otherwise = Nothing
 
-indexFrom0 :: (HasCallStack, Num a, Ord a) => a -> IndexFrom 0 a
-indexFrom0 = indexFrom
+-- | 'indexFromM' specialized to 0-indexing.
+indexFromM0 :: forall a. (Num a, Ord a) => a -> Maybe (IndexFrom 0 a)
+indexFromM0 = indexFromM
 
-indexFrom1 :: (HasCallStack, Num a, Ord a) => a -> IndexFrom 1 a
-indexFrom1 = indexFrom
+-- | 'indexFromM' specialized to 1-indexing.
+indexFromM1 :: forall a. (Num a, Ord a) => a -> Maybe (IndexFrom 1 a)
+indexFromM1 = indexFromM
 
 -- | Destructor for 'IndexFrom'.
 fromIndex :: forall n a. IndexFrom n a -> a
 fromIndex (IndexFrom i) = i
 
+-- | 'fromIndex' specialized to 0-indexing.
 fromIndex0 :: IndexFrom 0 a -> a
 fromIndex0 = fromIndex
 
+-- | 'fromIndex' specialized to 1-indexing.
 fromIndex1 :: IndexFrom 1 a -> a
 fromIndex1 = fromIndex
 
@@ -114,10 +120,13 @@ newtype Offset a = Offset a
 instance Show a => Show (Offset a) where
   showsPrec = flip $ \(Offset i) -> showCon "offset" @| i
 
--- | Construct a nonnegative 'Offset'. Otherwise an error is raised.
-offset :: (HasCallStack, Num a, Ord a) => a -> Offset a
-offset i | 0 <= i = Offset i
-         | otherwise = error "Offset must not be negative"
+-- | Construct a nonnegative 'Offset'.
+--
+-- See also 'indexFrom' in "DiffLoc.Unsafe", a variant of 'offsetM' that
+-- throws errors instead of using @Maybe@.
+offsetM :: (Num a, Ord a) => a -> Maybe (Offset a)
+offsetM i | 0 <= i = Just (Offset i)
+          | otherwise = Nothing
 
 -- | Unwrap 'Offset'.
 fromOffset :: Offset a -> a

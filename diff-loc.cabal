@@ -31,6 +31,7 @@ library
       DiffLoc.Interval
       DiffLoc.Shift
       DiffLoc.Starter
+      DiffLoc.Unsafe
     build-depends:
       fingertree,
       show-combinators,
