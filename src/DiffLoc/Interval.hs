@@ -51,7 +51,7 @@ isEmpty (_ :.. n) = n == mempty
 deriving instance (Eq p, Eq (Trans p)) => Eq (Interval p)
 deriving instance (Show p, Show (Trans p)) => Show (Interval p)
 
-instance Affine p => BlockOrder (Interval p) where
+instance Amor p => BlockOrder (Interval p) where
   precedes (i :.. n) (j :.. _) = i .+ n <= j
   distantlyPrecedes (i :.. n) (j :.. _) = i .+ n < j
 
@@ -94,7 +94,7 @@ deriving instance (Show p, Show (Trans p)) => Show (Replace p)
 -- === Properties
 --
 -- prop> (x <> y) <> z === x <> (y <> z :: Replace (Plain Int))
-instance Affine p => Semigroup (Replace p) where
+instance Amor p => Semigroup (Replace p) where
   Replace li ln lm <> Replace ri rn rm
     | li .+ ln <= ri
       -- Disjoint, l on the left.
@@ -159,7 +159,7 @@ instance Affine p => Semigroup (Replace p) where
       --
     = Replace ri (rn + (li .-. (ri .+ rm)) + ln) ((li .+ lm) .-. ri)
 
-instance Affine p => Shift (Replace p) where
+instance Amor p => Shift (Replace p) where
   type Block (Replace p) = Interval p
   dual (Replace i n m) = Replace i m n
 

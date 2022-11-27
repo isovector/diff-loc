@@ -2,7 +2,7 @@
   GeneralizedNewtypeDeriving,
   TypeFamilies #-}
 
--- | Affine space of line-column locations.
+-- | Amor space of line-column locations.
 module DiffLoc.Colline
   ( Colline(..)
   , Vallee(..)
@@ -63,7 +63,7 @@ instance (Monoid l, Eq l, Monoid c) => Monoid (Vallee l c) where
 -- prop> i <= j ==> (i .+ (j .-. i)) === (j :: Colline N N')
 -- prop> (i .+ r) .-. (i :: Colline N N') === r
 
-instance (Affine l, Origin c) => Affine (Colline l c) where
+instance (Amor l, Origin c) => Amor (Colline l c) where
   type Trans (Colline l c) = Vallee (Trans l) (Trans c)
 
   (.+) = traversee mempty (.+) (.+) ofOrigin

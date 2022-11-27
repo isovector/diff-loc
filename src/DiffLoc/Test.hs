@@ -89,17 +89,17 @@ pattern FSV d s = FS d s
 pattern GSV :: Diff (Colline N N) -> Interval (Colline N N) -> GoodSpan (Colline N N)
 pattern GSV d s = GS d s
 
-instance (Affine p, Arbitrary p, Arbitrary (Trans p)) => Arbitrary (FairSpan p) where
+instance (Amor p, Arbitrary p, Arbitrary (Trans p)) => Arbitrary (FairSpan p) where
   arbitrary = frequency [(10, (\(GS d s) -> FS d s) <$> arbitrary), (1, arbitrary)]
 
-instance (Affine p, Arbitrary p, Arbitrary (Trans p), Show p, Show (Trans p)) => Constructible (FairSpan p) where
+instance (Amor p, Arbitrary p, Arbitrary (Trans p), Show p, Show (Trans p)) => Constructible (FairSpan p) where
   type Repr (FairSpan p) = FairSpan p
   fromRepr = id
 
 -- |
 -- prop> \(GSN d s) -> isJust (mapDiff d s)
 -- prop> \(GSV d s) -> isJust (mapDiff d s)
-instance (Affine p, Arbitrary p, Arbitrary (Trans p)) => Arbitrary (GoodSpan p) where
+instance (Amor p, Arbitrary p, Arbitrary (Trans p)) => Arbitrary (GoodSpan p) where
   arbitrary = do
     let pairs (x : y : xs) | x == y = pairs (x : xs)
                            | otherwise = (x, y) : pairs xs

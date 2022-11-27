@@ -87,7 +87,7 @@ module DiffLoc
     --         | requires
     --         v
     -- **********************************************************
-    -- *  class 'Affine' v                                        *
+    -- *  class 'Amor' v                                        *
     -- *  type  'Point' v                                         *
     -- *  class Semigroup v                                     *
     -- *  class Ord v                                           *
@@ -123,7 +123,7 @@ module DiffLoc
     -- ** Interfaces
     --
     -- - 'Shift', 'BlockOrder'
-    -- - 'Affine', 'Origin'
+    -- - 'Amor', 'Origin'
   , module DiffLoc.Shift
 
     -- ** Intervals and replacements

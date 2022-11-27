@@ -39,7 +39,7 @@ type Diff p = ADiff (Replace p)
 -- "Colline 4 2 :.. Vallee (offset 3) (offset 3)"
 newtype f :$: x = NoShow (f x)
   deriving (Eq, Ord)
-  deriving (Semigroup, Monoid, Affine, Origin) via (f x)
+  deriving (Semigroup, Monoid, Amor, Origin) via (f x)
 
 instance Show a => Show (Plain :$: a) where
   show (NoShow (Plain i)) = show i

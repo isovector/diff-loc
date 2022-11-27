@@ -42,7 +42,7 @@ import DiffLoc.Shift
 newtype Plain a = Plain a
   deriving (Eq, Ord, Show)
 
-instance (Num a, Ord a) => Affine (Plain a) where
+instance (Num a, Ord a) => Amor (Plain a) where
   type Trans (Plain a) = Offset a
   Plain y .+ Offset x = Plain (x Prelude.+ y)
   Plain x .-.? Plain y | y <= x = Just (Offset (x - y))
@@ -61,7 +61,7 @@ instance (Num a, Ord a) => Affine (Plain a) where
 -- @
 newtype IndexFrom (n :: Nat) a = IndexFrom a
   deriving (Eq, Ord)
-  deriving Affine via (Plain a)
+  deriving Amor via (Plain a)
 
 instance Show a => Show (IndexFrom n a) where
   showsPrec = flip $ \(IndexFrom i) -> showCon "indexFrom" @| i

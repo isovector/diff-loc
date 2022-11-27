@@ -10,7 +10,7 @@ module DiffLoc.Shift
   , BlockOrder(..)
 
     -- ** Indices and offsets
-  , Affine(..)
+  , Amor(..)
   , (.-.)
   , Origin(..)
   , fromOrigin
@@ -85,16 +85,30 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
   coshiftR = shiftR . dual
   shiftR = coshiftR . dual
 
--- | Ordered affine spaces are made of points and vectors.
+-- | /Action d'un Monoïde Ordonné./ Ordered monoid actions.
 --
--- - Vectors can be added, that's the 'Semigroup' superclass.
+-- - An ordered set of points @Ord p@.
+-- - An ordered monoid of translations (or "vectors") @(Ord (Trans p), Monoid ('Trans' p))@.
+--
+-- In addition to the 'Ord' and 'Monoid' laws, ordered monoids must
+-- have a monotone @('<>')@:
+--
+-- @
+-- v <= v'   ==>    w <= w'   =>   (v <> w) <= (v' <> w')
+-- @
+--
 -- - Points can be translated along vectors using @('.+')@.
 -- - Given two ordered points @i <= j@, @j '.-.?' i@ finds a vector @n@
 --   such that @i + n = j@.
 --
--- In other words, we only require the existence of "positive" vectors.
+-- In other words, we only require the existence of "positive" translations
+-- (this is unlike affine spaces, where translations exist between any two points).
 -- This makes it possible to implement this class for line-column locations
--- ("DiffLoc.Colline").
+-- ("DiffLoc.Colline"), where translations are not invertible.
+--
+-- @('.-.?')@ is not part of a standard definition of ordered monoid actions.
+-- Feel free to suggest a better name for this structure or a way to not
+-- depend on this operation.
 --
 -- __Laws:__
 --
@@ -103,15 +117,15 @@ class (Semigroup r, BlockOrder (Block r)) => Shift r where
 -- x '<=' y  ==>  x '.+' (y '.-.' x)  =  y
 --              (x '.+' v) '.-.' x  =  x
 -- @
-class (Ord p, Ord (Trans p), Monoid (Trans p)) => Affine p where
+class (Ord p, Ord (Trans p), Monoid (Trans p)) => Amor p where
   type Trans p :: Type
 
   infixr 6 .+
 
-  -- | Translation.
+  -- | Translate a point.
   (.+) :: p -> Trans p -> p
 
-  -- | Vector between two points.
+  -- | Translation between two points.
   -- @j .-.? i@ must be defined ('Just') if @i <= j@,
   (.-.?) :: p -> p -> Maybe (Trans p)
 
@@ -123,12 +137,14 @@ class (Ord p, Ord (Trans p), Monoid (Trans p)) => Affine p where
 infixl 6 .-.
 
 -- | An unsafe variant of @('.-.?')@ which throws an exception on @Nothing@.
-(.-.) :: HasCallStack => Affine p => p -> p -> Trans p
+-- This operator may appear in class laws, imposing an implicit requirement
+-- that its operands must be ordered.
+(.-.) :: HasCallStack => Amor p => p -> p -> Trans p
 i .-. j = case i .-.? j of
   Nothing -> error "undefined vector"
   Just n -> n
 
--- | Extend 'Affine' with an "origin" point from which vectors can be drawn to
+-- | Extend 'Amor' with an "origin" point from which vectors can be drawn to
 -- all points. To make the interface slightly more general, only the partial
 -- application @(origin .-.)@ needs to be supplied.
 --
@@ -137,7 +153,7 @@ i .-. j = case i .-.? j of
 -- @
 -- 'origin' <= x
 -- @
-class Affine p => Origin p where
+class Amor p => Origin p where
   origin :: p
 
 -- | Translate the origin along a vector.
