@@ -47,5 +47,4 @@ unit-test:
     - chmod a+x $HOME/.cabal/bin/cabal-docspec
     - cabal-docspec --version
   script:
-    - cabal build --flag "+test"
-    - cabal-docspec --check-properties --property-variables "d i j r s u v w x y z" --timeout 20
+    - sh run-docspec.sh
