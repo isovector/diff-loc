@@ -68,8 +68,8 @@ instance Amor p => BlockOrder (Interval p) where
 -- This may overapproximate the underlying text replacement,
 -- with intervals being wider than necessary.
 -- For example, the transformation from "abc" to "ac" could be represented
--- by @mkReplace 1 1 0@ (replace "b" with "" at location 1), and also by
--- @mkReplace 0 2 1@ (replace "ab" with "a" at location 0).
+-- by @Replace 1 (offset 1) (offset 0)@ (replace "b" with "" at location 1), and also by
+-- @Replace 0 (offset 2) (offset 1)@ (replace "ab" with "a" at location 0).
 --
 -- > source   abc   abc
 -- >      -    b    ab

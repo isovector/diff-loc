@@ -54,9 +54,9 @@ import DiffLoc.Shift
 --
 -- It consists of three replacements:
 --
--- 1. replace "b" with "pp" at location 1, @mkReplace 1 1 2@;
--- 2. replace "de" with "" at location 3, @mkReplace 3 2 0@;
--- 3. replace "" with "zz" at location 7, @mkReplace 7 0 2@.
+-- 1. replace "b" with "pp" at location 1, @Replace 1 (offset 1) (offset 2)@;
+-- 2. replace "de" with "" at location 3, @Replace 3 (offset 2) (offset 0)@;
+-- 3. replace "" with "zz" at location 7, @Replace 7 (offset 0) (offset 2)@.
 --
 -- >>> :{
 --   let d :: Diff N
