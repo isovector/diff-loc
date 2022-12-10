@@ -145,8 +145,7 @@ infixl 6 .-.
 i .-. j = fromMaybe (error "undefined vector") (i .-.? j)
 
 -- | Extend 'Amor' with an "origin" point from which vectors can be drawn to
--- all points. To make the interface slightly more general, only the partial
--- application @(origin .-.)@ needs to be supplied.
+-- all points.
 --
 -- __Laws:__
 --
