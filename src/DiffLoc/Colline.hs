@@ -37,10 +37,12 @@ data Colline l c = Colline !l !c
 
 -- | The space between two 'Colline's.
 --
--- This type represents offsets between text locations @x <= y@
--- as the number of newlines inbetween and the number of characters
--- from the last new line to @y@, if there is at least one newline,
--- or the number of characters from @x@ to @y@.
+-- This type represents offsets between text locations @x <= y@ as:
+--
+-- 1. the number of newlines inbetween; and
+-- 2. the number of characters from @x@ to @y@ if they are on the same line, or
+--    the number of characters from the last newline to @y@ if there is at least
+--    one newline.
 --
 -- === Example
 --
